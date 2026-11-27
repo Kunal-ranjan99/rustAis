@@ -17,6 +17,7 @@
       --muted: #8b9bb4;
       --accent: #38bdf8;
       --green: #22c55e;
+      --yellow: #eab308;
       --amber: #f59e0b;
       --red: #ef4444;
     }
@@ -200,6 +201,35 @@
       border-radius: 6px;
       display: none;
     }
+    .map-legend {
+      position: absolute;
+      bottom: 14px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: rgba(13, 20, 36, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 600;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+    }
 
     /* RIGHT: CONNECTED VEHICLES LIST */
     .right-pane {
@@ -244,19 +274,22 @@
     .vehicle-card {
       background: var(--card);
       border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
       border-radius: 10px;
       padding: 12px 14px;
       transition: border-color 0.15s, transform 0.12s, background 0.15s;
       cursor: pointer;
     }
+    .vehicle-card.state-moving { border-left-color: #16a34a; }
+    .vehicle-card.state-idle { border-left-color: #eab308; }
+    .vehicle-card.state-off { border-left-color: #dc2626; }
     .vehicle-card:hover {
       border-color: var(--accent);
       background: #13203a;
       transform: translateY(-1px);
     }
     .vehicle-card.selected {
-      border-color: var(--green);
-      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+      box-shadow: 0 0 0 1.5px var(--accent);
     }
     .vc-top {
       display: flex;
@@ -316,14 +349,8 @@
       font-size: 11px;
       color: var(--muted);
     }
-    .vc-actions {
-      display: flex;
-      gap: 6px;
-    }
-    .vc-actions button {
-      padding: 4px 9px;
-      font-size: 11px;
-    }
+    .vc-actions { display: flex; gap: 6px; }
+    .vc-actions button { padding: 4px 9px; font-size: 11px; }
 
     /* BADGES */
     .badge {
@@ -334,11 +361,11 @@
       font-weight: 700;
       letter-spacing: 0.3px;
     }
-    .badge.ok { background: rgba(34, 197, 94, 0.18); color: var(--green); }
-    .badge.err { background: rgba(239, 68, 68, 0.22); color: var(--red); }
+    .badge.ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+    .badge.warn { background: rgba(234, 179, 8, 0.22); color: #facc15; }
+    .badge.err { background: rgba(239, 68, 68, 0.22); color: #f87171; }
     .badge.live { background: rgba(56, 189, 248, 0.18); color: var(--accent); }
     .badge.hist { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
-    .badge.muted { background: rgba(139, 155, 180, 0.16); color: var(--muted); }
 
     /* SLIDE-OVER PACKET POPOVER DRAWER */
     .drawer-backdrop {
@@ -351,10 +378,7 @@
       pointer-events: none;
       transition: opacity 0.2s ease;
     }
-    .drawer-backdrop.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
     .packet-drawer {
       position: fixed;
       top: 0;
@@ -371,9 +395,7 @@
       transform: translateX(100%);
       transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .packet-drawer.open {
-      transform: translateX(0);
-    }
+    .packet-drawer.open { transform: translateX(0); }
     .drawer-header {
       padding: 14px 16px;
       background: var(--panel-2);
@@ -383,18 +405,8 @@
       align-items: center;
       gap: 10px;
     }
-    .drawer-header h2 {
-      font-size: 14px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .drawer-sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
+    .drawer-header h2 { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .drawer-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
     .injector {
       padding: 10px 16px;
@@ -422,22 +434,9 @@
       font-size: 11px;
     }
 
-    .table-wrap {
-      flex: 1;
-      overflow-y: auto;
-      min-height: 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11.5px;
-    }
-    thead {
-      position: sticky;
-      top: 0;
-      background: #0b1120;
-      z-index: 5;
-    }
+    .table-wrap { flex: 1; overflow-y: auto; min-height: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    thead { position: sticky; top: 0; background: #0b1120; z-index: 5; }
     th {
       text-align: left;
       padding: 8px 10px;
@@ -472,7 +471,22 @@
       display: none;
     }
 
-    /* MAP MARKERS */
+    /* CLUSTER & VEHICLE MARKERS */
+    .cluster-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #ffffff;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      border: 3px solid #ffffff;
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .cluster-marker:hover { transform: scale(1.1); }
+
     .marker-wrap {
       display: flex;
       flex-direction: column;
@@ -487,29 +501,41 @@
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 4px;
-      border: 1px solid #38bdf8;
+      border: 1.5px solid #38bdf8;
       margin-bottom: 3px;
       white-space: nowrap;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
     }
     .marker-el {
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
-      background: #0284c7;
       border: 2.5px solid #ffffff;
-      box-shadow: 0 0 12px rgba(2, 132, 199, 0.9), 0 2px 6px rgba(0, 0, 0, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 11px;
-      color: #fff;
       font-weight: bold;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     }
-    .marker-el.match {
+    .marker-el.state-moving {
       background: #16a34a;
-      box-shadow: 0 0 16px rgba(34, 197, 94, 1), 0 2px 6px rgba(0, 0, 0, 0.5);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(22, 163, 74, 0.85), 0 2px 6px rgba(0, 0, 0, 0.45);
     }
+    .marker-el.state-idle {
+      background: #eab308;
+      color: #0f172a;
+      box-shadow: 0 0 12px rgba(234, 179, 8, 0.9), 0 2px 6px rgba(0, 0, 0, 0.45);
+    }
+    .marker-el.state-off {
+      background: #dc2626;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(220, 38, 38, 0.85), 0 2px 6px rgba(0, 0, 0, 0.45);
+    }
+    .marker-label.state-moving { border-color: #22c55e; }
+    .marker-label.state-idle { border-color: #eab308; }
+    .marker-label.state-off { border-color: #ef4444; }
   </style>
 </head>
 <body>
@@ -541,7 +567,7 @@
   </header>
 
   <div class="workspace">
-    <!-- LEFT: Free OpenStreetMap WebGL 3D Map (India Focus) + 3D Globe -->
+    <!-- LEFT: Free OpenStreetMap WebGL Map (Clustered, Latest Position Only) + 3D Globe -->
     <div class="viewport-pane">
       <div class="map-top-bar">
         <div class="map-overlay">
@@ -554,7 +580,7 @@
           <input
             id="search-input"
             type="text"
-            placeholder="Search by IMEI or Vehicle No (e.g. DL01VA4021)..."
+            placeholder="Search by IMEI or Vehicle No (e.g. BR01PH4768)..."
             oninput="onSearchInput()"
             onkeydown="if(event.key==='Enter') locateSearchMatch()"
           />
@@ -566,9 +592,15 @@
       <div id="search-status" class="search-status"></div>
       <div id="map"></div>
       <canvas id="webgl-canvas"></canvas>
+
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>IGN ON (Moving)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#eab308;"></span>IGN ON (0 km/h)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dc2626;"></span>IGN OFF</div>
+      </div>
     </div>
 
-    <!-- RIGHT: Connected Vehicles List (with Major Telemetry Details) -->
+    <!-- RIGHT: Connected Vehicles List -->
     <div class="right-pane">
       <div class="panel-header">
         <h2>
@@ -643,22 +675,59 @@
 
     const recentPackets = [];
     const liveDevices = new Map();
-    const deviceTrails = new Map();
-    const mapMarkers = new Map();
+    const activeMarkers = new Map(); // rendered cluster + unclustered markers currently on screen
     let searchQuery = '';
     let selectedImei = null;
+    let pendingPopupImei = null;
     let drawerImeiFilter = null;
     let viewMode = 'map';
     let map = null;
     let mapReady = false;
     let simTimer = null;
 
-    // 3 Simulated Indian highway AIS-140 vehicles
+    // 3 Simulated Indian AIS-140 vehicles (Green Moving, Yellow Idle, Red Ignition OFF)
     const simFleet = [
-      { imei: '864251050010001', reg: 'DL01VA4021', lat: 28.6139, lon: 77.2090, dLat: 0.0022, dLon: 0.0031, speed: 58.4, heading: 54 },
-      { imei: '864251050010002', reg: 'MH12TR8890', lat: 19.0760, lon: 72.8777, dLat: -0.0018, dLon: 0.0028, speed: 71.2, heading: 122 },
-      { imei: '864251050010003', reg: 'KA01EV5512', lat: 12.9716, lon: 77.5946, dLat: 0.0025, dLon: -0.0016, speed: 44.8, heading: 328 }
+      { imei: '864251050010001', reg: 'DL01VA4021', lat: 28.6139, lon: 77.2090, dLat: 0.0022, dLon: 0.0031, speed: 58.4, heading: 54, ignition: true },
+      { imei: '864251050010002', reg: 'MH12TR8890', lat: 19.0760, lon: 72.8777, dLat: 0.0, dLon: 0.0, speed: 0.0, heading: 122, ignition: true },
+      { imei: '864251050010003', reg: 'KA01EV5512', lat: 12.9716, lon: 77.5946, dLat: 0.0, dLon: 0.0, speed: 0.0, heading: 328, ignition: false }
     ];
+
+    // ---------------- IGNITION + SPEED COLOR STATE ----------------
+    // Green  : ignition == 1 (true) AND speed > 0
+    // Yellow : ignition == 1 (true) AND speed == 0
+    // Red    : ignition == 0 (false)
+    function getVehicleState(rec) {
+      const ignOn = rec.ignition === true || rec.ignition === 1 || rec.ignition === '1';
+      const speed = Number(rec.speed_kmh || 0);
+      if (!ignOn) {
+        return {
+          key: 'off',
+          cls: 'state-off',
+          label: 'IGN OFF',
+          badgeClass: 'err',
+          color: '#dc2626',
+          rgb: [0.86, 0.15, 0.15, 1.0]
+        };
+      }
+      if (speed <= 0) {
+        return {
+          key: 'idle',
+          cls: 'state-idle',
+          label: 'IGN ON • IDLE',
+          badgeClass: 'warn',
+          color: '#eab308',
+          rgb: [0.92, 0.70, 0.03, 1.0]
+        };
+      }
+      return {
+        key: 'moving',
+        cls: 'state-moving',
+        label: 'IGN ON • MOVING',
+        badgeClass: 'ok',
+        color: '#16a34a',
+        rgb: [0.09, 0.64, 0.29, 1.0]
+      };
+    }
 
     // ---------------- PACKET DRAWER POPOVER ----------------
     function openPacketDrawer(imeiFilter) {
@@ -712,7 +781,7 @@
     function onSearchInput() {
       searchQuery = document.getElementById('search-input').value.trim();
       updateSearchStatus();
-      refreshMapObjects();
+      updateClusterSource();
       renderVehicleList();
       renderRecentTable();
     }
@@ -722,7 +791,7 @@
       searchQuery = '';
       selectedImei = null;
       updateSearchStatus();
-      refreshMapObjects();
+      updateClusterSource();
       renderVehicleList();
       renderRecentTable();
     }
@@ -741,7 +810,7 @@
     function locateSearchMatch() {
       searchQuery = document.getElementById('search-input').value.trim();
       updateSearchStatus();
-      refreshMapObjects();
+      updateClusterSource();
       renderVehicleList();
       renderRecentTable();
 
@@ -755,8 +824,6 @@
         recentPackets.find(r => matchesSearch(r) && r.lat != null && r.lon != null);
 
       if (match) {
-        selectedImei = match.imei;
-        renderVehicleList();
         if (viewMode !== 'map') setViewMode('map');
         flyToRecord(match, true);
       } else {
@@ -769,11 +836,11 @@
     function resetIndiaView() {
       if (viewMode !== 'map') setViewMode('map');
       if (map) {
-        map.flyTo({ center: INDIA_CENTER, zoom: INDIA_ZOOM, pitch: 28, bearing: 0, duration: 900 });
+        map.flyTo({ center: INDIA_CENTER, zoom: INDIA_ZOOM, pitch: 20, bearing: 0, duration: 900 });
       }
     }
 
-    // ---------------- 1. FREE OPENSTREETMAP WEBGL 3D MAP ----------------
+    // ---------------- 1. OPENSTREETMAP WEBGL WITH CLUSTER MARKERS (NO LINES) ----------------
     function initMap() {
       if (typeof maplibregl === 'undefined') {
         setViewMode('globe');
@@ -795,7 +862,7 @@
         },
         center: INDIA_CENTER,
         zoom: INDIA_ZOOM,
-        pitch: 28,
+        pitch: 20,
         bearing: 0,
         antialias: true
       });
@@ -804,102 +871,174 @@
 
       map.on('load', () => {
         mapReady = true;
-        map.addSource('trails', {
+
+        // Native MapLibre WebGL GeoJSON cluster source (latest position per device ONLY, no lines)
+        map.addSource('vehicles', {
           type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] }
+          data: { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterMaxZoom: 14,
+          clusterRadius: 52
         });
+
+        // Invisible anchor layer so MapLibre computes clusters on every viewport change
         map.addLayer({
-          id: 'trails-line',
-          type: 'line',
-          source: 'trails',
-          paint: {
-            'line-color': '#0284c7',
-            'line-width': 3.5,
-            'line-opacity': 0.85
-          }
+          id: 'vehicles-anchor',
+          type: 'circle',
+          source: 'vehicles',
+          paint: { 'circle-radius': 0, 'circle-opacity': 0 }
         });
-        refreshMapObjects();
+
+        map.on('render', syncClusterMarkers);
+        map.on('moveend', syncClusterMarkers);
+        map.on('zoomend', syncClusterMarkers);
+
+        updateClusterSource();
       });
     }
 
-    function updateMapForRecord(rec) {
-      if (!rec.valid || rec.lat == null || rec.lon == null) return;
-      if (!deviceTrails.has(rec.imei)) deviceTrails.set(rec.imei, []);
-      const trail = deviceTrails.get(rec.imei);
-      trail.push([rec.lon, rec.lat]);
-      if (trail.length > 60) trail.shift();
-      refreshMapObjects();
-    }
-
-    function refreshMapObjects() {
+    // Push ONLY the latest location of each matching device into the GeoJSON cluster source
+    function updateClusterSource() {
       if (!mapReady || !map) return;
+      const src = map.getSource('vehicles');
+      if (!src) return;
 
       const features = [];
-      for (const [imei, coords] of deviceTrails.entries()) {
-        const rec = liveDevices.get(imei);
-        if (rec && !matchesSearch(rec)) continue;
-        if (coords.length >= 2) {
-          features.push({
-            type: 'Feature',
-            properties: { imei },
-            geometry: { type: 'LineString', coordinates: coords }
-          });
+      for (const rec of liveDevices.values()) {
+        if (rec.lat == null || rec.lon == null) continue;
+        if (!matchesSearch(rec)) continue;
+        features.push({
+          type: 'Feature',
+          properties: { imei: rec.imei },
+          geometry: { type: 'Point', coordinates: [rec.lon, rec.lat] }
+        });
+      }
+      src.setData({ type: 'FeatureCollection', features });
+      requestAnimationFrame(syncClusterMarkers);
+    }
+
+    // Synchronize crisp HTML cluster circles & ignition-colored vehicle markers with MapLibre's Supercluster
+    function syncClusterMarkers() {
+      if (!mapReady || !map || !map.isSourceLoaded('vehicles')) return;
+
+      const features = map.querySourceFeatures('vehicles');
+      const seenKeys = new Set();
+
+      for (const f of features) {
+        const coords = f.geometry.coordinates;
+        const props = f.properties || {};
+
+        if (props.cluster) {
+          const clusterId = props.cluster_id;
+          const key = `cluster:${clusterId}`;
+          if (seenKeys.has(key)) continue;
+          seenKeys.add(key);
+
+          const count = props.point_count;
+          const label = props.point_count_abbreviated || String(count);
+
+          let marker = activeMarkers.get(key);
+          if (!marker) {
+            const el = document.createElement('div');
+            el.className = 'cluster-marker';
+            el.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              try {
+                const src = map.getSource('vehicles');
+                const zoom = await src.getClusterExpansionZoom(clusterId);
+                map.easeTo({ center: coords, zoom: Math.min(zoom + 0.5, 17), duration: 500 });
+              } catch {
+                map.easeTo({ center: coords, zoom: Math.min(map.getZoom() + 2, 17), duration: 500 });
+              }
+            });
+            marker = new maplibregl.Marker({ element: el }).setLngLat(coords).addTo(map);
+            activeMarkers.set(key, marker);
+          }
+
+          const el = marker.getElement();
+          const size = count >= 50 ? 46 : count >= 10 ? 38 : 32;
+          const bg = count >= 50 ? '#dc2626' : count >= 10 ? '#7c3aed' : '#0284c7';
+          el.style.width = `${size}px`;
+          el.style.height = `${size}px`;
+          el.style.fontSize = count >= 100 ? '11px' : '12px';
+          el.style.background = bg;
+          el.textContent = label;
+          marker.setLngLat(coords);
+        } else {
+          const imei = props.imei;
+          const rec = liveDevices.get(imei);
+          if (!rec) continue;
+
+          const key = `veh:${imei}`;
+          if (seenKeys.has(key)) continue;
+          seenKeys.add(key);
+
+          const st = getVehicleState(rec);
+          let marker = activeMarkers.get(key);
+
+          if (!marker) {
+            const wrap = document.createElement('div');
+            wrap.className = 'marker-wrap';
+
+            const lbl = document.createElement('div');
+            lbl.className = `marker-label ${st.cls}`;
+            lbl.textContent = rec.vehicle_reg || imei.slice(-6);
+
+            const arrow = document.createElement('div');
+            arrow.className = `marker-el ${st.cls}`;
+            arrow.textContent = '▲';
+
+            wrap.appendChild(lbl);
+            wrap.appendChild(arrow);
+
+            marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' })
+              .setLngLat([rec.lon, rec.lat])
+              .setPopup(new maplibregl.Popup({ offset: 26 }).setHTML(popupHtml(rec)))
+              .addTo(map);
+            activeMarkers.set(key, marker);
+          }
+
+          marker.setLngLat([rec.lon, rec.lat]);
+          marker.getPopup().setHTML(popupHtml(rec));
+
+          const wrap = marker.getElement();
+          const lbl = wrap.querySelector('.marker-label');
+          const arrow = wrap.querySelector('.marker-el');
+          if (lbl) {
+            lbl.textContent = rec.vehicle_reg || imei.slice(-6);
+            lbl.className = `marker-label ${st.cls}`;
+          }
+          if (arrow) {
+            arrow.className = `marker-el ${st.cls}`;
+            arrow.style.transform = `rotate(${rec.heading ?? 0}deg)`;
+          }
+
+          if (pendingPopupImei === imei) {
+            pendingPopupImei = null;
+            if (!marker.getPopup().isOpen()) marker.togglePopup();
+          }
         }
       }
-      const src = map.getSource('trails');
-      if (src) src.setData({ type: 'FeatureCollection', features });
 
-      for (const [imei, rec] of liveDevices.entries()) {
-        if (rec.lat == null || rec.lon == null) continue;
-        const visible = matchesSearch(rec);
-
-        if (!mapMarkers.has(imei)) {
-          const wrap = document.createElement('div');
-          wrap.className = 'marker-wrap';
-
-          const lbl = document.createElement('div');
-          lbl.className = 'marker-label';
-          lbl.textContent = rec.vehicle_reg || rec.imei.slice(-6);
-
-          const arrow = document.createElement('div');
-          arrow.className = 'marker-el';
-          arrow.textContent = '▲';
-
-          wrap.appendChild(lbl);
-          wrap.appendChild(arrow);
-
-          const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' })
-            .setLngLat([rec.lon, rec.lat])
-            .setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(popupHtml(rec)))
-            .addTo(map);
-          mapMarkers.set(imei, marker);
-        }
-
-        const marker = mapMarkers.get(imei);
-        marker.setLngLat([rec.lon, rec.lat]);
-        marker.getPopup().setHTML(popupHtml(rec));
-
-        const wrap = marker.getElement();
-        wrap.style.display = visible ? 'flex' : 'none';
-        const lbl = wrap.querySelector('.marker-label');
-        const arrow = wrap.querySelector('.marker-el');
-        if (lbl) lbl.textContent = rec.vehicle_reg || rec.imei.slice(-6);
-        if (arrow) {
-          arrow.className = (searchQuery || selectedImei === imei) && visible ? 'marker-el match' : 'marker-el';
-          if (rec.heading != null) {
-            arrow.style.transform = `rotate(${rec.heading}deg)`;
-          }
+      // Remove markers that are no longer visible or merged into a cluster
+      for (const [key, marker] of activeMarkers.entries()) {
+        if (!seenKeys.has(key)) {
+          marker.remove();
+          activeMarkers.delete(key);
         }
       }
     }
 
     function popupHtml(rec) {
-      return `<div style="color:#0f172a;font-family:monospace;font-size:12px;line-height:1.45;">
-        <b>${escapeHtml(rec.vehicle_reg || 'VLTD Vehicle')}</b><br/>
+      const st = getVehicleState(rec);
+      const ignText = (rec.ignition === true || rec.ignition === 1 || rec.ignition === '1') ? 'ON (1)' : 'OFF (0)';
+      return `<div style="color:#0f172a;font-family:monospace;font-size:12px;line-height:1.5;">
+        <b>${escapeHtml(rec.vehicle_reg || 'VLTD Vehicle')}</b>
+        <span style="display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;background:${st.color};color:${st.key==='idle'?'#0f172a':'#fff'};font-size:10px;font-weight:700;">${st.label}</span><br/>
         IMEI: <b>${escapeHtml(rec.imei)}</b><br/>
         Lat: ${rec.lat?.toFixed(5)} | Lon: ${rec.lon?.toFixed(5)}<br/>
-        Speed: ${rec.speed_kmh ?? 0} km/h | Hdg: ${rec.heading ?? 0}&deg;<br/>
-        Ignition: ${rec.ignition ? 'ON' : 'OFF'}
+        Speed: <b>${rec.speed_kmh ?? 0} km/h</b> | Hdg: ${rec.heading ?? 0}&deg;<br/>
+        Ignition: <b>${ignText}</b>
       </div>`;
     }
 
@@ -907,12 +1046,14 @@
       if (!rec) return;
       selectedImei = rec.imei;
       renderVehicleList();
-      refreshMapObjects();
       if (rec.lat != null && rec.lon != null && map && viewMode === 'map') {
-        map.flyTo({ center: [rec.lon, rec.lat], zoom: 12, pitch: 45, duration: 900 });
-        if (openPopup && mapMarkers.has(rec.imei)) {
-          const marker = mapMarkers.get(rec.imei);
-          if (!marker.getPopup().isOpen()) marker.togglePopup();
+        if (openPopup) pendingPopupImei = rec.imei;
+        // Zoom to 15 (> clusterMaxZoom 14) so the target vehicle is always unclustered
+        map.flyTo({ center: [rec.lon, rec.lat], zoom: 15, pitch: 25, duration: 850 });
+        const existing = activeMarkers.get(`veh:${rec.imei}`);
+        if (openPopup && existing) {
+          pendingPopupImei = null;
+          if (!existing.getPopup().isOpen()) existing.togglePopup();
         }
       }
     }
@@ -991,20 +1132,17 @@
       gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.LINES, 0, sphereCount);
 
-      const pts = [];
       for (const rec of liveDevices.values()) {
         if (rec.lat == null || rec.lon == null || !matchesSearch(rec)) continue;
+        const st = getVehicleState(rec);
         const latR = rec.lat * Math.PI / 180, lonR = -rec.lon * Math.PI / 180, r = 1.02;
-        pts.push(r * Math.cos(latR) * Math.cos(lonR), r * Math.sin(latR), r * Math.cos(latR) * Math.sin(lonR));
-      }
-      if (pts.length > 0) {
         const ptBuf = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, ptBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.STREAM_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([r * Math.cos(latR) * Math.cos(lonR), r * Math.sin(latR), r * Math.cos(latR) * Math.sin(lonR)]), gl.STREAM_DRAW);
         gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
         gl.uniform1f(uSize, 12.0);
-        gl.uniform4f(uColor, 0.22, 0.74, 0.97, 1.0);
-        gl.drawArrays(gl.POINTS, 0, pts.length / 3);
+        gl.uniform4f(uColor, st.rgb[0], st.rgb[1], st.rgb[2], st.rgb[3]);
+        gl.drawArrays(gl.POINTS, 0, 1);
         gl.deleteBuffer(ptBuf);
       }
     }
@@ -1024,7 +1162,7 @@
       if (recentPackets.length > 20) recentPackets.pop();
       if (rec.valid && rec.packet_status === 'L') {
         liveDevices.set(rec.imei, rec);
-        updateMapForRecord(rec);
+        updateClusterSource();
       }
       updateSearchStatus();
       renderVehicleList();
@@ -1051,7 +1189,8 @@
       }
 
       container.innerHTML = filtered.map(d => {
-        const speed = d.speed_kmh != null ? `${d.speed_kmh.toFixed(1)} km/h` : '--';
+        const st = getVehicleState(d);
+        const speed = d.speed_kmh != null ? `${d.speed_kmh.toFixed(1)} km/h` : '0.0 km/h';
         const hdg = d.heading != null ? `${Math.round(d.heading)}°` : '--';
         const coords = (d.lat != null && d.lon != null)
           ? `${d.lat.toFixed(4)}, ${d.lon.toFixed(4)}`
@@ -1059,29 +1198,19 @@
         const sats = d.satellites != null ? d.satellites : '--';
         const volt = d.battery_voltage != null ? `${d.battery_voltage.toFixed(1)}V` : '--';
         const updated = (d.received_at || '').slice(11, 19) + ' UTC';
-        const isMoving = (d.speed_kmh || 0) > 2;
 
-        const ignBadge = d.ignition
-          ? `<span class="badge ok">IGN ON</span>`
-          : `<span class="badge muted">IGN OFF</span>`;
-        const moveBadge = isMoving
-          ? `<span class="badge live">MOVING</span>`
-          : `<span class="badge hist">IDLE</span>`;
-        const emgBadge = d.emergency
-          ? `<span class="badge err">SOS</span>`
-          : '';
-        const fixBadge = d.gps_fix === false
-          ? `<span class="badge err">NO GPS</span>`
-          : '';
+        const stateBadge = `<span class="badge ${st.badgeClass}">${st.label}</span>`;
+        const emgBadge = d.emergency ? `<span class="badge err">SOS</span>` : '';
+        const fixBadge = d.gps_fix === false ? `<span class="badge err">NO GPS</span>` : '';
 
         return `
-          <div class="vehicle-card ${selectedImei === d.imei ? 'selected' : ''}" onclick="flyToRecord(liveDevices.get('${d.imei}'), true)">
+          <div class="vehicle-card ${st.cls} ${selectedImei === d.imei ? 'selected' : ''}" onclick="flyToRecord(liveDevices.get('${d.imei}'), true)">
             <div class="vc-top">
               <div>
                 <div class="vc-title">${escapeHtml(d.vehicle_reg || 'AIS-140 Vehicle')}</div>
                 <div class="vc-imei">IMEI: ${escapeHtml(d.imei)}</div>
               </div>
-              <div class="vc-badges">${emgBadge}${fixBadge}${ignBadge}${moveBadge}</div>
+              <div class="vc-badges">${emgBadge}${fixBadge}${stateBadge}</div>
             </div>
 
             <div class="vc-grid">
@@ -1168,14 +1297,12 @@
         const [recentRes, liveRes] = await Promise.all([fetch('/api/recent'), fetch('/api/live')]);
         const recent = await recentRes.json();
         const live = await liveRes.json();
-        live.forEach(d => {
-          liveDevices.set(d.imei, d);
-          updateMapForRecord(d);
-        });
+        live.forEach(d => liveDevices.set(d.imei, d));
         recent.reverse().forEach(r => {
           recentPackets.unshift(r);
           if (recentPackets.length > 20) recentPackets.pop();
         });
+        updateClusterSource();
         renderVehicleList();
         renderRecentTable();
       } catch (e) { console.error(e); }
@@ -1219,7 +1346,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imei: v.imei, vehicle_reg: v.reg, lat: v.lat, lon: v.lon,
-          speed_kmh: v.speed, heading: v.heading, packet_status: 'L', ignition: true
+          speed_kmh: v.speed, heading: v.heading, packet_status: 'L', ignition: v.ignition
         })
       });
       pollHealth();
@@ -1239,10 +1366,12 @@
     }
 
     function stepVehicle(v) {
-      v.lat += v.dLat + (Math.random() - 0.5) * 0.001;
-      v.lon += v.dLon + (Math.random() - 0.5) * 0.001;
-      v.speed = Math.max(15, Math.min(95, +(v.speed + (Math.random() - 0.5) * 8).toFixed(1)));
-      v.heading = Math.round((Math.atan2(v.dLon, v.dLat) * 180 / Math.PI + 360) % 360);
+      if (v.ignition && v.speed > 0) {
+        v.lat += v.dLat + (Math.random() - 0.5) * 0.001;
+        v.lon += v.dLon + (Math.random() - 0.5) * 0.001;
+        v.speed = Math.max(15, Math.min(95, +(v.speed + (Math.random() - 0.5) * 8).toFixed(1)));
+        v.heading = Math.round((Math.atan2(v.dLon, v.dLat) * 180 / Math.PI + 360) % 360);
+      }
     }
 
     function toggleSimulation() {
@@ -1263,7 +1392,7 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 imei: v.imei, vehicle_reg: v.reg, lat: v.lat, lon: v.lon,
-                speed_kmh: v.speed, heading: v.heading, packet_status: 'L', ignition: true
+                speed_kmh: v.speed, heading: v.heading, packet_status: 'L', ignition: v.ignition
               })
             });
           }
