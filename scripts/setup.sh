@@ -12,7 +12,8 @@ set -euo pipefail
 REPO_URL="https://github.com/Kunal-ranjan99/rustAis.git"
 APP_USER="${USER:-ubuntu}"
 APP_DIR="${HOME}/rustAis"
-INFLUX_VER="2.7.5"
+INFLUX_DEB_URL="https://dl.influxdata.com/influxdb/releases/influxdb2_2.7.11-1_amd64.deb"
+INFLUX_CLI_URL="https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.5-linux-amd64.tar.gz"
 
 echo "======================================================================"
 echo " Provisioning VLTD AIS-140 Rust Gateway on Ubuntu EC2"
@@ -55,23 +56,21 @@ cargo --version
 echo "==> [3/7] Installing and configuring Redis..."
 sudo apt-get install -y redis-server
 sudo sysctl -w vm.overcommit_memory=1
-if ! grep -q "vm.overcommit_memory" /etc/sysctl.conf; then
-  echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf >/dev/null
-fi
+echo "vm.overcommit_memory = 1" | sudo tee /etc/sysctl.d/99-redis-overcommit.conf >/dev/null
 sudo systemctl enable redis-server
 sudo systemctl restart redis-server
 
 # 4. InfluxDB v2 + CLI
 if ! command -v influxd >/dev/null 2>&1; then
-  echo "==> [4/7] Installing InfluxDB v2 (${INFLUX_VER})..."
-  wget -q "https://dl.influxdata.com/influxdb/releases/influxdb2-${INFLUX_VER}-amd64.deb" -O /tmp/influxdb2.deb
+  echo "==> [4/7] Installing InfluxDB v2 (2.7.11)..."
+  curl -fSL "${INFLUX_DEB_URL}" -o /tmp/influxdb2.deb
   sudo dpkg -i /tmp/influxdb2.deb
   rm -f /tmp/influxdb2.deb
 fi
 
 if ! command -v influx >/dev/null 2>&1; then
   echo "==> Installing Influx CLI..."
-  wget -q "https://dl.influxdata.com/influxdb/releases/influxdb2-client-${INFLUX_VER}-linux-amd64.tar.gz" -O /tmp/influx-cli.tar.gz
+  curl -fSL "${INFLUX_CLI_URL}" -o /tmp/influx-cli.tar.gz
   tar -xzf /tmp/influx-cli.tar.gz -C /tmp
   sudo cp /tmp/influx /usr/local/bin/influx
   sudo chmod +x /usr/local/bin/influx
