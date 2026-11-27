@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VLTD AIS-140 Gateway — WebGL Telemetry Command</title>
+  <title>VLTD AIS-140 Gateway — WebGL Telemetry Command (India)</title>
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <style>
@@ -18,7 +18,6 @@
       --green: #22c55e;
       --amber: #f59e0b;
       --red: #ef4444;
-      --purple: #a855f7;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -62,18 +61,18 @@
     .brand span { font-size: 11px; color: var(--muted); display: block; }
     .metrics {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .metric {
       background: var(--panel-2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 5px 11px;
-      min-width: 88px;
+      padding: 5px 10px;
+      min-width: 80px;
     }
     .metric .label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
-    .metric .val { font-size: 15px; font-weight: 700; color: var(--accent); margin-top: 1px; }
+    .metric .val { font-size: 14px; font-weight: 700; color: var(--accent); margin-top: 1px; }
     .metric .val.green { color: var(--green); }
     .metric .val.red { color: var(--red); }
     .metric .val.amber { color: var(--amber); }
@@ -82,6 +81,7 @@
       display: flex;
       gap: 8px;
       align-items: center;
+      flex-wrap: wrap;
     }
     button {
       background: var(--panel-2);
@@ -113,7 +113,7 @@
     .viewport-pane {
       position: relative;
       border-right: 1px solid var(--border);
-      background: #050811;
+      background: #0b1220;
       overflow: hidden;
     }
     #map, #webgl-canvas {
@@ -123,19 +123,64 @@
       height: 100%;
     }
     #webgl-canvas { display: none; }
-    .map-overlay {
+
+    .map-top-bar {
       position: absolute;
       top: 12px;
       left: 12px;
+      right: 12px;
       z-index: 10;
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+    .map-overlay, .search-box {
+      pointer-events: auto;
+      display: flex;
       gap: 6px;
-      background: rgba(13, 20, 36, 0.86);
+      align-items: center;
+      background: rgba(13, 20, 36, 0.92);
       backdrop-filter: blur(8px);
       padding: 6px;
       border-radius: 9px;
       border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     }
+    .search-box {
+      flex: 1;
+      max-width: 420px;
+      min-width: 240px;
+    }
+    .search-box input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+    }
+    .search-box input:focus {
+      border-color: var(--accent);
+    }
+    .search-status {
+      position: absolute;
+      top: 62px;
+      right: 12px;
+      z-index: 10;
+      background: rgba(13, 20, 36, 0.9);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: none;
+    }
+
     .device-hud {
       position: absolute;
       bottom: 12px;
@@ -148,17 +193,20 @@
       padding-bottom: 2px;
     }
     .device-card {
-      background: rgba(13, 20, 36, 0.9);
+      background: rgba(13, 20, 36, 0.92);
       backdrop-filter: blur(8px);
       border: 1px solid var(--border);
       border-radius: 9px;
       padding: 8px 12px;
-      min-width: 195px;
+      min-width: 205px;
       cursor: pointer;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, transform 0.15s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
-    .device-card:hover { border-color: var(--accent); }
-    .device-card .imei { font-size: 12px; font-weight: 700; color: var(--accent); font-family: monospace; }
+    .device-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .device-card.highlighted { border-color: var(--green); box-shadow: 0 0 12px rgba(34, 197, 94, 0.4); }
+    .device-card .veh-reg { font-size: 13px; font-weight: 700; color: #fff; }
+    .device-card .imei { font-size: 11px; font-weight: 600; color: var(--accent); font-family: monospace; margin-top: 1px; }
     .device-card .meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; }
 
     .right-pane {
@@ -224,19 +272,19 @@
     }
     th {
       text-align: left;
-      padding: 8px 10px;
+      padding: 8px 9px;
       font-size: 10px;
       text-transform: uppercase;
       color: var(--muted);
       border-bottom: 1px solid var(--border);
     }
     td {
-      padding: 7px 10px;
+      padding: 7px 9px;
       border-bottom: 1px solid rgba(30, 45, 77, 0.6);
       vertical-align: middle;
     }
     tbody tr { cursor: pointer; transition: background 0.12s; }
-    tbody tr:hover { background: rgba(56, 189, 248, 0.08); }
+    tbody tr:hover { background: rgba(56, 189, 248, 0.1); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     .badge {
       display: inline-block;
@@ -250,25 +298,48 @@
     .badge.live { background: rgba(56, 189, 248, 0.18); color: var(--accent); }
     .badge.hist { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
     .raw-cell {
-      max-width: 210px;
+      max-width: 170px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: var(--muted);
     }
+    .marker-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+    .marker-label {
+      background: rgba(15, 23, 42, 0.92);
+      color: #fff;
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #38bdf8;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
     .marker-el {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      background: radial-gradient(circle, #38bdf8 0%, #0284c7 65%, rgba(2,132,199,0) 100%);
-      border: 2px solid #e0f2fe;
-      box-shadow: 0 0 14px #38bdf8;
+      background: #0284c7;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.9), 0 2px 6px rgba(0, 0, 0, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 11px;
       color: #fff;
       font-weight: bold;
+    }
+    .marker-el.match {
+      background: #16a34a;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 1), 0 2px 6px rgba(0, 0, 0, 0.5);
     }
   </style>
 </head>
@@ -298,12 +369,29 @@
   </header>
 
   <div class="workspace">
-    <!-- Left: WebGL 3D Map + Pure Native WebGL Globe -->
+    <!-- Left: Free OpenStreetMap WebGL 3D Map (India Focus) + Native WebGL Globe -->
     <div class="viewport-pane">
-      <div class="map-overlay">
-        <button id="mode-map" class="active" onclick="setViewMode('map')">WebGL 3D Map</button>
-        <button id="mode-globe" onclick="setViewMode('globe')">Native WebGL Globe</button>
+      <div class="map-top-bar">
+        <div class="map-overlay">
+          <button id="mode-map" class="active" onclick="setViewMode('map')">OpenStreetMap WebGL</button>
+          <button id="mode-globe" onclick="setViewMode('globe')">3D Globe</button>
+          <button onclick="resetIndiaView()" title="Center map on India">India View</button>
+        </div>
+
+        <div class="search-box">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search by IMEI or Vehicle No (e.g. DL01VA4021)..."
+            oninput="onSearchInput()"
+            onkeydown="if(event.key==='Enter') locateSearchMatch()"
+          />
+          <button class="primary" onclick="locateSearchMatch()">Locate</button>
+          <button onclick="clearSearch()" title="Clear search">✕</button>
+        </div>
       </div>
+
+      <div id="search-status" class="search-status"></div>
       <div id="map"></div>
       <canvas id="webgl-canvas"></canvas>
       <div id="device-hud" class="device-hud"></div>
@@ -332,8 +420,8 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>Time (UTC)</th>
-              <th>IMEI</th>
+              <th>Time</th>
+              <th>Vehicle / IMEI</th>
               <th>Type</th>
               <th>Coords / Speed</th>
               <th>Status</th>
@@ -349,10 +437,14 @@
   </div>
 
   <script>
+    const INDIA_CENTER = [78.9629, 22.5937];
+    const INDIA_ZOOM = 4.5;
+
     const recentPackets = [];
     const liveDevices = new Map();
     const deviceTrails = new Map();
     const mapMarkers = new Map();
+    let searchQuery = '';
     let viewMode = 'map';
     let map = null;
     let mapReady = false;
@@ -365,7 +457,81 @@
       { imei: '864251050010003', reg: 'KA01EV5512', lat: 12.9716, lon: 77.5946, dLat: 0.0025, dLon: -0.0016, speed: 44.8, heading: 328 }
     ];
 
-    // ---------------- 1. MAPLIBRE WEBGL 3D MAP ----------------
+    // ---------------- SEARCH HELPERS (IMEI / VEHICLE NUMBER) ----------------
+    function matchesSearch(rec) {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        (rec.imei && rec.imei.toLowerCase().includes(q)) ||
+        (rec.vehicle_reg && rec.vehicle_reg.toLowerCase().includes(q)) ||
+        (rec.raw_packet && rec.raw_packet.toLowerCase().includes(q))
+      );
+    }
+
+    function onSearchInput() {
+      searchQuery = document.getElementById('search-input').value.trim();
+      updateSearchStatus();
+      refreshMapObjects();
+      renderRecentTable();
+      renderDeviceHud();
+    }
+
+    function clearSearch() {
+      document.getElementById('search-input').value = '';
+      searchQuery = '';
+      updateSearchStatus();
+      refreshMapObjects();
+      renderRecentTable();
+      renderDeviceHud();
+    }
+
+    function updateSearchStatus() {
+      const badge = document.getElementById('search-status');
+      if (!searchQuery) {
+        badge.style.display = 'none';
+        return;
+      }
+      const matchedDevices = Array.from(liveDevices.values()).filter(matchesSearch);
+      const matchedPkts = recentPackets.filter(matchesSearch);
+      badge.style.display = 'block';
+      badge.textContent = `Filter "${searchQuery}": ${matchedDevices.length} vehicle(s), ${matchedPkts.length} packet(s)`;
+    }
+
+    function locateSearchMatch() {
+      searchQuery = document.getElementById('search-input').value.trim();
+      updateSearchStatus();
+      refreshMapObjects();
+      renderRecentTable();
+      renderDeviceHud();
+
+      if (!searchQuery) {
+        resetIndiaView();
+        return;
+      }
+
+      // Find first matching live vehicle (or fallback to recent packet with GPS coords)
+      const match =
+        Array.from(liveDevices.values()).find(r => matchesSearch(r) && r.lat != null && r.lon != null) ||
+        recentPackets.find(r => matchesSearch(r) && r.lat != null && r.lon != null);
+
+      if (match) {
+        if (viewMode !== 'map') setViewMode('map');
+        flyToRecord(match, true);
+      } else {
+        const badge = document.getElementById('search-status');
+        badge.style.display = 'block';
+        badge.textContent = `No GPS vehicle found for "${searchQuery}"`;
+      }
+    }
+
+    function resetIndiaView() {
+      if (viewMode !== 'map') setViewMode('map');
+      if (map) {
+        map.flyTo({ center: INDIA_CENTER, zoom: INDIA_ZOOM, pitch: 28, bearing: 0, duration: 900 });
+      }
+    }
+
+    // ---------------- 1. FREE OPENSTREETMAP WEBGL 3D MAP ----------------
     function initMap() {
       if (typeof maplibregl === 'undefined') {
         setViewMode('globe');
@@ -376,21 +542,23 @@
         style: {
           version: 8,
           sources: {
-            dark: {
+            osm: {
               type: 'raster',
-              tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
               tileSize: 256,
-              attribution: '&copy; OpenStreetMap &copy; CARTO'
+              attribution: '&copy; OpenStreetMap contributors'
             }
           },
-          layers: [{ id: 'dark-tiles', type: 'raster', source: 'dark' }]
+          layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm' }]
         },
-        center: [78.9629, 21.5937],
-        zoom: 4.5,
-        pitch: 45,
-        bearing: -10,
+        center: INDIA_CENTER,
+        zoom: INDIA_ZOOM,
+        pitch: 28,
+        bearing: 0,
         antialias: true
       });
+
+      map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 
       map.on('load', () => {
         mapReady = true;
@@ -403,9 +571,9 @@
           type: 'line',
           source: 'trails',
           paint: {
-            'line-color': '#38bdf8',
-            'line-width': 3,
-            'line-opacity': 0.8
+            'line-color': '#0284c7',
+            'line-width': 3.5,
+            'line-opacity': 0.85
           }
         });
         refreshMapObjects();
@@ -424,9 +592,11 @@
     function refreshMapObjects() {
       if (!mapReady || !map) return;
 
-      // Update GeoJSON trail lines
+      // Update GeoJSON trail lines (filtered by searchQuery if active)
       const features = [];
       for (const [imei, coords] of deviceTrails.entries()) {
+        const rec = liveDevices.get(imei);
+        if (rec && !matchesSearch(rec)) continue;
         if (coords.length >= 2) {
           features.push({
             type: 'Feature',
@@ -441,37 +611,65 @@
       // Update vehicle markers
       for (const [imei, rec] of liveDevices.entries()) {
         if (rec.lat == null || rec.lon == null) continue;
+        const visible = matchesSearch(rec);
+
         if (!mapMarkers.has(imei)) {
-          const el = document.createElement('div');
-          el.className = 'marker-el';
-          el.textContent = '▲';
-          const marker = new maplibregl.Marker({ element: el })
+          const wrap = document.createElement('div');
+          wrap.className = 'marker-wrap';
+
+          const lbl = document.createElement('div');
+          lbl.className = 'marker-label';
+          lbl.textContent = rec.vehicle_reg || rec.imei.slice(-6);
+
+          const arrow = document.createElement('div');
+          arrow.className = 'marker-el';
+          arrow.textContent = '▲';
+
+          wrap.appendChild(lbl);
+          wrap.appendChild(arrow);
+
+          const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' })
             .setLngLat([rec.lon, rec.lat])
-            .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml(rec)))
+            .setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(popupHtml(rec)))
             .addTo(map);
           mapMarkers.set(imei, marker);
-        } else {
-          const marker = mapMarkers.get(imei);
-          marker.setLngLat([rec.lon, rec.lat]);
-          marker.getPopup().setHTML(popupHtml(rec));
+        }
+
+        const marker = mapMarkers.get(imei);
+        marker.setLngLat([rec.lon, rec.lat]);
+        marker.getPopup().setHTML(popupHtml(rec));
+
+        const wrap = marker.getElement();
+        wrap.style.display = visible ? 'flex' : 'none';
+        const lbl = wrap.querySelector('.marker-label');
+        const arrow = wrap.querySelector('.marker-el');
+        if (lbl) lbl.textContent = rec.vehicle_reg || rec.imei.slice(-6);
+        if (arrow) {
+          arrow.className = searchQuery && visible ? 'marker-el match' : 'marker-el';
           if (rec.heading != null) {
-            marker.getElement().style.transform = `rotate(${rec.heading}deg)`;
+            arrow.style.transform = `rotate(${rec.heading}deg)`;
           }
         }
       }
     }
 
     function popupHtml(rec) {
-      return `<div style="color:#0f172a;font-family:monospace;font-size:12px;">
-        <b>${rec.imei}</b> (${rec.vehicle_reg || 'VLTD'})<br/>
+      return `<div style="color:#0f172a;font-family:monospace;font-size:12px;line-height:1.45;">
+        <b>${escapeHtml(rec.vehicle_reg || 'VLTD Vehicle')}</b><br/>
+        IMEI: <b>${escapeHtml(rec.imei)}</b><br/>
         Lat: ${rec.lat?.toFixed(5)} | Lon: ${rec.lon?.toFixed(5)}<br/>
-        Speed: ${rec.speed_kmh ?? 0} km/h | Hdg: ${rec.heading ?? 0}&deg;
+        Speed: ${rec.speed_kmh ?? 0} km/h | Hdg: ${rec.heading ?? 0}&deg;<br/>
+        Ignition: ${rec.ignition ? 'ON' : 'OFF'}
       </div>`;
     }
 
-    function flyToRecord(rec) {
+    function flyToRecord(rec, openPopup = false) {
       if (rec && rec.lat != null && rec.lon != null && map && viewMode === 'map') {
-        map.flyTo({ center: [rec.lon, rec.lat], zoom: 11, pitch: 52, duration: 900 });
+        map.flyTo({ center: [rec.lon, rec.lat], zoom: 12, pitch: 45, duration: 900 });
+        if (openPopup && mapMarkers.has(rec.imei)) {
+          const marker = mapMarkers.get(rec.imei);
+          if (!marker.getPopup().isOpen()) marker.togglePopup();
+        }
       }
     }
 
@@ -508,7 +706,6 @@
       gl.linkProgram(glProg);
       gl.useProgram(glProg);
 
-      // Build wireframe lat/lon sphere geometry
       const verts = [];
       for (let lat = -75; lat <= 75; lat += 15) {
         const r = Math.cos(lat * Math.PI / 180);
@@ -577,10 +774,9 @@
       gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.LINES, 0, sphereCount);
 
-      // Draw live AIS-140 GPS coordinates as glowing WebGL points
       const pts = [];
       for (const rec of liveDevices.values()) {
-        if (rec.lat == null || rec.lon == null) continue;
+        if (rec.lat == null || rec.lon == null || !matchesSearch(rec)) continue;
         const latR = rec.lat * Math.PI / 180;
         const lonR = -rec.lon * Math.PI / 180;
         const r = 1.02;
@@ -615,16 +811,27 @@
         liveDevices.set(rec.imei, rec);
         updateMapForRecord(rec);
       }
+      updateSearchStatus();
       renderRecentTable();
       renderDeviceHud();
     }
 
     function renderRecentTable() {
       const tbody = document.getElementById('recent-tbody');
-      document.getElementById('pkt-count').textContent = `${recentPackets.length} / 20 buffered`;
-      if (recentPackets.length === 0) return;
+      const filtered = recentPackets.filter(matchesSearch);
+      document.getElementById('pkt-count').textContent = searchQuery
+        ? `${filtered.length} matching / ${recentPackets.length} buffered`
+        : `${recentPackets.length} / 20 buffered`;
 
-      tbody.innerHTML = recentPackets.map((r, idx) => {
+      if (filtered.length === 0) {
+        tbody.innerHTML = searchQuery
+          ? `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No packets matching "<b>${escapeHtml(searchQuery)}</b>" in the latest 20 buffer.</td></tr>`
+          : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Waiting for AIS-140 TCP packets on port 5001... Click <b>Start Fleet Sim</b> to test live!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((r) => {
+        const origIdx = recentPackets.indexOf(r);
         const t = (r.received_at || '').slice(11, 19);
         const coords = (r.lat != null && r.lon != null)
           ? `${r.lat.toFixed(4)}, ${r.lon.toFixed(4)} (${r.speed_kmh ?? 0} km/h)`
@@ -635,10 +842,13 @@
         const typeBadge = r.packet_status === 'L'
           ? `<span class="badge live">L</span>`
           : `<span class="badge hist">${escapeHtml(r.packet_status)}</span>`;
-        return `<tr onclick="flyToRecord(recentPackets[${idx}])">
+        const vehLabel = r.vehicle_reg
+          ? `<div style="font-weight:700;color:#fff;">${escapeHtml(r.vehicle_reg)}</div><div class="mono" style="font-size:10px;color:var(--accent);">${escapeHtml(r.imei)}</div>`
+          : `<div class="mono">${escapeHtml(r.imei)}</div>`;
+        return `<tr onclick="flyToRecord(recentPackets[${origIdx}], true)">
           <td class="mono">${r.id}</td>
           <td class="mono">${t}</td>
-          <td class="mono">${escapeHtml(r.imei)}</td>
+          <td>${vehLabel}</td>
           <td>${typeBadge}</td>
           <td class="mono">${coords}</td>
           <td>${statusBadge}</td>
@@ -649,11 +859,13 @@
 
     function renderDeviceHud() {
       const hud = document.getElementById('device-hud');
-      hud.innerHTML = Array.from(liveDevices.values()).map(d => `
-        <div class="device-card" onclick="flyToRecord(liveDevices.get('${d.imei}'))">
-          <div class="imei">${d.imei}</div>
-          <div class="meta"><span>${d.vehicle_reg || 'AIS-140'}</span><span>${d.speed_kmh ?? 0} km/h</span></div>
-          <div class="meta"><span>${d.lat?.toFixed(4) ?? '-'}, ${d.lon?.toFixed(4) ?? '-'}</span><span>IGN: ${d.ignition ? 'ON' : 'OFF'}</span></div>
+      const devices = Array.from(liveDevices.values()).filter(matchesSearch);
+      hud.innerHTML = devices.map(d => `
+        <div class="device-card ${searchQuery ? 'highlighted' : ''}" onclick="flyToRecord(liveDevices.get('${d.imei}'), true)">
+          <div class="veh-reg">${escapeHtml(d.vehicle_reg || 'AIS-140 Vehicle')}</div>
+          <div class="imei">${escapeHtml(d.imei)}</div>
+          <div class="meta"><span>${d.speed_kmh ?? 0} km/h</span><span>IGN: ${d.ignition ? 'ON' : 'OFF'}</span></div>
+          <div class="meta"><span>${d.lat?.toFixed(4) ?? '-'}, ${d.lon?.toFixed(4) ?? '-'}</span><span>HDG: ${d.heading ?? 0}&deg;</span></div>
         </div>
       `).join('');
     }
@@ -685,7 +897,7 @@
       const es = new EventSource('/api/stream');
       es.onopen = () => {
         document.getElementById('sse-dot').className = 'pulse-dot';
-        document.getElementById('conn-label').textContent = 'Live TCP Port 5001 -> WebGL Stream Active';
+        document.getElementById('conn-label').textContent = 'Live TCP Port 5001 -> OpenStreetMap WebGL Active';
       };
       es.addEventListener('telemetry', (e) => {
         try { pushRecord(JSON.parse(e.data)); } catch {}

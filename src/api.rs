@@ -27,6 +27,11 @@ pub struct DeviceQuery {
 }
 
 #[derive(Deserialize)]
+pub struct SearchQuery {
+    pub q: Option<String>,
+}
+
+#[derive(Deserialize)]
 pub struct InfluxHistoryQuery {
     pub imei: String,
     pub start: i64,
@@ -68,6 +73,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/health", get(health_check))
         .route("/api/recent", get(get_recent_packets))
         .route("/api/live", get(get_live_devices))
+        .route("/api/search", get(search_vehicles))
         .route("/api/stream", get(sse_stream))
         .route("/api/simulate", post(simulate_tcp_packet))
         // Reference VLTD REST APIs (100% compatible)
@@ -107,6 +113,48 @@ async fn get_live_devices(State(state): State<AppState>) -> impl IntoResponse {
     let map = state.live_devices.read().await;
     let list: Vec<TelemetryRecord> = map.values().cloned().collect();
     (StatusCode::OK, Json(list))
+}
+
+/// Searches active devices and recent packets by IMEI or Vehicle Registration Number.
+async fn search_vehicles(
+    Query(params): Query<SearchQuery>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let q = params.q.unwrap_or_default().trim().to_lowercase();
+    let live_map = state.live_devices.read().await;
+    let recent_buf = state.recent_packets.read().await;
+
+    let matches_query = |r: &TelemetryRecord| -> bool {
+        if q.is_empty() {
+            return true;
+        }
+        r.imei.to_lowercase().contains(&q)
+            || r.vehicle_reg
+                .as_deref()
+                .map(|v| v.to_lowercase().contains(&q))
+                .unwrap_or(false)
+            || r.raw_packet.to_lowercase().contains(&q)
+    };
+
+    let devices: Vec<TelemetryRecord> = live_map
+        .values()
+        .filter(|r| matches_query(r))
+        .cloned()
+        .collect();
+    let packets: Vec<TelemetryRecord> = recent_buf
+        .iter()
+        .filter(|r| matches_query(r))
+        .cloned()
+        .collect();
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "query": q,
+            "devices": devices,
+            "packets": packets,
+        })),
+    )
 }
 
 /// Server-Sent Events stream pushing every incoming packet live to the WebGL dashboard.
