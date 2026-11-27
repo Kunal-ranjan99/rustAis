@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VLTD AIS-140 Gateway — WebGL Telemetry Command</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #0d1424;
+      --panel-2: #121c33;
+      --border: #1e2d4d;
+      --text: #e2e8f0;
+      --muted: #8b9bb4;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse 1.8s infinite;
+    }
+    .pulse-dot.offline { background: var(--red); box-shadow: 0 0 10px var(--red); animation: none; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.25); }
+    }
+    .brand h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
+    .brand span { font-size: 11px; color: var(--muted); display: block; }
+    .metrics {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 11px;
+      min-width: 88px;
+    }
+    .metric .label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+    .metric .val { font-size: 15px; font-weight: 700; color: var(--accent); margin-top: 1px; }
+    .metric .val.green { color: var(--green); }
+    .metric .val.red { color: var(--red); }
+    .metric .val.amber { color: var(--amber); }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    button {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button:hover { border-color: var(--accent); color: #fff; }
+    button.primary { background: #0284c7; border-color: #38bdf8; color: #fff; }
+    button.primary:hover { background: #0369a1; }
+    button.active { background: #15803d; border-color: #22c55e; color: #fff; }
+    button.danger { background: #991b1b; border-color: #ef4444; color: #fff; }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      min-height: 0;
+    }
+    @media (max-width: 1024px) {
+      .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+    }
+
+    .viewport-pane {
+      position: relative;
+      border-right: 1px solid var(--border);
+      background: #050811;
+      overflow: hidden;
+    }
+    #map, #webgl-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #webgl-canvas { display: none; }
+    .map-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 6px;
+      background: rgba(13, 20, 36, 0.86);
+      backdrop-filter: blur(8px);
+      padding: 6px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+    }
+    .device-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .device-card {
+      background: rgba(13, 20, 36, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 12px;
+      min-width: 195px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .device-card:hover { border-color: var(--accent); }
+    .device-card .imei { font-size: 12px; font-weight: 700; color: var(--accent); font-family: monospace; }
+    .device-card .meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; }
+
+    .right-pane {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--panel);
+    }
+    .injector {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+    }
+    .injector-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .injector-row {
+      display: flex;
+      gap: 6px;
+    }
+    .injector input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    .table-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h2 { font-size: 13px; font-weight: 700; }
+    .table-header span { font-size: 11px; color: var(--muted); }
+
+    .table-wrap {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+    thead {
+      position: sticky;
+      top: 0;
+      background: #0b1120;
+      z-index: 5;
+    }
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(30, 45, 77, 0.6);
+      vertical-align: middle;
+    }
+    tbody tr { cursor: pointer; transition: background 0.12s; }
+    tbody tr:hover { background: rgba(56, 189, 248, 0.08); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge.ok { background: rgba(34, 197, 94, 0.18); color: var(--green); }
+    .badge.err { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+    .badge.live { background: rgba(56, 189, 248, 0.18); color: var(--accent); }
+    .badge.hist { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
+    .raw-cell {
+      max-width: 210px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--muted);
+    }
+    .marker-el {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8 0%, #0284c7 65%, rgba(2,132,199,0) 100%);
+      border: 2px solid #e0f2fe;
+      box-shadow: 0 0 14px #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #fff;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div id="sse-dot" class="pulse-dot offline"></div>
+      <div>
+        <h1>VLTD AIS-140 Gateway</h1>
+        <span id="conn-label">Connecting to live TCP telemetry stream...</span>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="label">TCP Conns</div><div id="m-conns" class="val">0</div></div>
+      <div class="metric"><div class="label">Total Pkts</div><div id="m-total" class="val">0</div></div>
+      <div class="metric"><div class="label">Valid</div><div id="m-valid" class="val green">0</div></div>
+      <div class="metric"><div class="label">Invalid</div><div id="m-invalid" class="val red">0</div></div>
+      <div class="metric"><div class="label">InfluxDB</div><div id="m-influx" class="val amber">0</div></div>
+      <div class="metric"><div class="label">EBS Archive</div><div id="m-ebs" class="val">0</div></div>
+    </div>
+
+    <div class="controls">
+      <button id="btn-sim" class="primary" onclick="toggleSimulation()">▶ Start Fleet Sim</button>
+      <button onclick="sendSingleTestPacket()">+ Send 1 Packet</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <!-- Left: WebGL 3D Map + Pure Native WebGL Globe -->
+    <div class="viewport-pane">
+      <div class="map-overlay">
+        <button id="mode-map" class="active" onclick="setViewMode('map')">WebGL 3D Map</button>
+        <button id="mode-globe" onclick="setViewMode('globe')">Native WebGL Globe</button>
+      </div>
+      <div id="map"></div>
+      <canvas id="webgl-canvas"></canvas>
+      <div id="device-hud" class="device-hud"></div>
+    </div>
+
+    <!-- Right: Packet Injector + Latest 20 Incoming Packets -->
+    <div class="right-pane">
+      <div class="injector">
+        <div class="injector-title">
+          <span>TCP Port 5001 Raw AIS-140 Injector</span>
+          <span id="inject-status" style="color:var(--accent)"></span>
+        </div>
+        <div class="injector-row">
+          <input id="raw-input" type="text" placeholder="Paste raw $PVT,... packet or leave blank for auto-generated" />
+          <button onclick="sendCustomPacket()">Inject TCP</button>
+        </div>
+      </div>
+
+      <div class="table-header">
+        <h2>Latest 20 Incoming Packets</h2>
+        <span id="pkt-count">0 / 20 buffered</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Time (UTC)</th>
+              <th>IMEI</th>
+              <th>Type</th>
+              <th>Coords / Speed</th>
+              <th>Status</th>
+              <th>Raw $PVT</th>
+            </tr>
+          </thead>
+          <tbody id="recent-tbody">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Waiting for AIS-140 TCP packets on port 5001... Click <b>Start Fleet Sim</b> to test live!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const recentPackets = [];
+    const liveDevices = new Map();
+    const deviceTrails = new Map();
+    const mapMarkers = new Map();
+    let viewMode = 'map';
+    let map = null;
+    let mapReady = false;
+    let simTimer = null;
+
+    // 3 Simulated Indian highway AIS-140 vehicles
+    const simFleet = [
+      { imei: '864251050010001', reg: 'DL01VA4021', lat: 28.6139, lon: 77.2090, dLat: 0.0022, dLon: 0.0031, speed: 58.4, heading: 54 },
+      { imei: '864251050010002', reg: 'MH12TR8890', lat: 19.0760, lon: 72.8777, dLat: -0.0018, dLon: 0.0028, speed: 71.2, heading: 122 },
+      { imei: '864251050010003', reg: 'KA01EV5512', lat: 12.9716, lon: 77.5946, dLat: 0.0025, dLon: -0.0016, speed: 44.8, heading: 328 }
+    ];
+
+    // ---------------- 1. MAPLIBRE WEBGL 3D MAP ----------------
+    function initMap() {
+      if (typeof maplibregl === 'undefined') {
+        setViewMode('globe');
+        return;
+      }
+      map = new maplibregl.Map({
+        container: 'map',
+        style: {
+          version: 8,
+          sources: {
+            dark: {
+              type: 'raster',
+              tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
+              tileSize: 256,
+              attribution: '&copy; OpenStreetMap &copy; CARTO'
+            }
+          },
+          layers: [{ id: 'dark-tiles', type: 'raster', source: 'dark' }]
+        },
+        center: [78.9629, 21.5937],
+        zoom: 4.5,
+        pitch: 45,
+        bearing: -10,
+        antialias: true
+      });
+
+      map.on('load', () => {
+        mapReady = true;
+        map.addSource('trails', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+        map.addLayer({
+          id: 'trails-line',
+          type: 'line',
+          source: 'trails',
+          paint: {
+            'line-color': '#38bdf8',
+            'line-width': 3,
+            'line-opacity': 0.8
+          }
+        });
+        refreshMapObjects();
+      });
+    }
+
+    function updateMapForRecord(rec) {
+      if (!rec.valid || rec.lat == null || rec.lon == null) return;
+      if (!deviceTrails.has(rec.imei)) deviceTrails.set(rec.imei, []);
+      const trail = deviceTrails.get(rec.imei);
+      trail.push([rec.lon, rec.lat]);
+      if (trail.length > 60) trail.shift();
+      refreshMapObjects();
+    }
+
+    function refreshMapObjects() {
+      if (!mapReady || !map) return;
+
+      // Update GeoJSON trail lines
+      const features = [];
+      for (const [imei, coords] of deviceTrails.entries()) {
+        if (coords.length >= 2) {
+          features.push({
+            type: 'Feature',
+            properties: { imei },
+            geometry: { type: 'LineString', coordinates: coords }
+          });
+        }
+      }
+      const src = map.getSource('trails');
+      if (src) src.setData({ type: 'FeatureCollection', features });
+
+      // Update vehicle markers
+      for (const [imei, rec] of liveDevices.entries()) {
+        if (rec.lat == null || rec.lon == null) continue;
+        if (!mapMarkers.has(imei)) {
+          const el = document.createElement('div');
+          el.className = 'marker-el';
+          el.textContent = '▲';
+          const marker = new maplibregl.Marker({ element: el })
+            .setLngLat([rec.lon, rec.lat])
+            .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml(rec)))
+            .addTo(map);
+          mapMarkers.set(imei, marker);
+        } else {
+          const marker = mapMarkers.get(imei);
+          marker.setLngLat([rec.lon, rec.lat]);
+          marker.getPopup().setHTML(popupHtml(rec));
+          if (rec.heading != null) {
+            marker.getElement().style.transform = `rotate(${rec.heading}deg)`;
+          }
+        }
+      }
+    }
+
+    function popupHtml(rec) {
+      return `<div style="color:#0f172a;font-family:monospace;font-size:12px;">
+        <b>${rec.imei}</b> (${rec.vehicle_reg || 'VLTD'})<br/>
+        Lat: ${rec.lat?.toFixed(5)} | Lon: ${rec.lon?.toFixed(5)}<br/>
+        Speed: ${rec.speed_kmh ?? 0} km/h | Hdg: ${rec.heading ?? 0}&deg;
+      </div>`;
+    }
+
+    function flyToRecord(rec) {
+      if (rec && rec.lat != null && rec.lon != null && map && viewMode === 'map') {
+        map.flyTo({ center: [rec.lon, rec.lat], zoom: 11, pitch: 52, duration: 900 });
+      }
+    }
+
+    // ---------------- 2. NATIVE WEBGL 3D GLOBE (ZERO-DEPENDENCY) ----------------
+    let gl, glProg, sphereBuf, sphereCount = 0, globeRot = 1.35;
+    function initNativeWebGL() {
+      const canvas = document.getElementById('webgl-canvas');
+      gl = canvas.getContext('webgl');
+      if (!gl) return;
+
+      const vs = `
+        attribute vec3 aPos;
+        uniform mat4 uMat;
+        uniform float uSize;
+        void main() {
+          gl_Position = uMat * vec4(aPos, 1.0);
+          gl_PointSize = uSize;
+        }
+      `;
+      const fs = `
+        precision mediump float;
+        uniform vec4 uColor;
+        void main() { gl_FragColor = uColor; }
+      `;
+      const compile = (type, src) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+      };
+      glProg = gl.createProgram();
+      gl.attachShader(glProg, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(glProg, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(glProg);
+      gl.useProgram(glProg);
+
+      // Build wireframe lat/lon sphere geometry
+      const verts = [];
+      for (let lat = -75; lat <= 75; lat += 15) {
+        const r = Math.cos(lat * Math.PI / 180);
+        const y = Math.sin(lat * Math.PI / 180);
+        for (let lon = 0; lon < 360; lon += 10) {
+          const a1 = lon * Math.PI / 180, a2 = (lon + 10) * Math.PI / 180;
+          verts.push(r * Math.cos(a1), y, r * Math.sin(a1), r * Math.cos(a2), y, r * Math.sin(a2));
+        }
+      }
+      for (let lon = 0; lon < 360; lon += 20) {
+        const a = lon * Math.PI / 180;
+        for (let lat = -85; lat < 85; lat += 10) {
+          const t1 = lat * Math.PI / 180, t2 = (lat + 10) * Math.PI / 180;
+          verts.push(
+            Math.cos(t1) * Math.cos(a), Math.sin(t1), Math.cos(t1) * Math.sin(a),
+            Math.cos(t2) * Math.cos(a), Math.sin(t2), Math.cos(t2) * Math.sin(a)
+          );
+        }
+      }
+      sphereBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, sphereBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+      sphereCount = verts.length / 3;
+
+      requestAnimationFrame(renderGlobe);
+    }
+
+    function renderGlobe() {
+      requestAnimationFrame(renderGlobe);
+      if (viewMode !== 'globe' || !gl) return;
+      const canvas = gl.canvas;
+      if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+
+      gl.clearColor(0.02, 0.04, 0.08, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+
+      globeRot += 0.004;
+      const aspect = canvas.width / Math.max(1, canvas.height);
+      const scale = 0.72;
+      const cy = Math.cos(globeRot), sy = Math.sin(globeRot);
+      const cx = Math.cos(0.35), sx = Math.sin(0.35);
+
+      const mat = new Float32Array([
+        (cy * scale) / aspect, sx * sy * scale, -cx * sy * scale, 0,
+        0, cx * scale, sx * scale, 0,
+        (sy * scale) / aspect, -sx * cy * scale, cx * cy * scale, 0,
+        0, 0, 0, 1
+      ]);
+
+      const uMat = gl.getUniformLocation(glProg, 'uMat');
+      const uColor = gl.getUniformLocation(glProg, 'uColor');
+      const uSize = gl.getUniformLocation(glProg, 'uSize');
+      const aPos = gl.getAttribLocation(glProg, 'aPos');
+
+      gl.uniformMatrix4fv(uMat, false, mat);
+      gl.uniform1f(uSize, 2.0);
+      gl.uniform4f(uColor, 0.12, 0.35, 0.58, 0.55);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, sphereBuf);
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.LINES, 0, sphereCount);
+
+      // Draw live AIS-140 GPS coordinates as glowing WebGL points
+      const pts = [];
+      for (const rec of liveDevices.values()) {
+        if (rec.lat == null || rec.lon == null) continue;
+        const latR = rec.lat * Math.PI / 180;
+        const lonR = -rec.lon * Math.PI / 180;
+        const r = 1.02;
+        pts.push(r * Math.cos(latR) * Math.cos(lonR), r * Math.sin(latR), r * Math.cos(latR) * Math.sin(lonR));
+      }
+      if (pts.length > 0) {
+        const ptBuf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, ptBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.STREAM_DRAW);
+        gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+        gl.uniform1f(uSize, 12.0);
+        gl.uniform4f(uColor, 0.22, 0.74, 0.97, 1.0);
+        gl.drawArrays(gl.POINTS, 0, pts.length / 3);
+        gl.deleteBuffer(ptBuf);
+      }
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('map').style.display = mode === 'map' ? 'block' : 'none';
+      document.getElementById('webgl-canvas').style.display = mode === 'globe' ? 'block' : 'none';
+      document.getElementById('mode-map').className = mode === 'map' ? 'active' : '';
+      document.getElementById('mode-globe').className = mode === 'globe' ? 'active' : '';
+      if (mode === 'map' && map) map.resize();
+    }
+
+    // ---------------- 3. LIVE DATA & LATEST 20 RENDERING ----------------
+    function pushRecord(rec) {
+      recentPackets.unshift(rec);
+      if (recentPackets.length > 20) recentPackets.pop();
+      if (rec.valid && rec.packet_status === 'L') {
+        liveDevices.set(rec.imei, rec);
+        updateMapForRecord(rec);
+      }
+      renderRecentTable();
+      renderDeviceHud();
+    }
+
+    function renderRecentTable() {
+      const tbody = document.getElementById('recent-tbody');
+      document.getElementById('pkt-count').textContent = `${recentPackets.length} / 20 buffered`;
+      if (recentPackets.length === 0) return;
+
+      tbody.innerHTML = recentPackets.map((r, idx) => {
+        const t = (r.received_at || '').slice(11, 19);
+        const coords = (r.lat != null && r.lon != null)
+          ? `${r.lat.toFixed(4)}, ${r.lon.toFixed(4)} (${r.speed_kmh ?? 0} km/h)`
+          : 'No GPS fix';
+        const statusBadge = r.valid
+          ? `<span class="badge ok">VALID</span>`
+          : `<span class="badge err" title="${escapeHtml(r.validation_error || '')}">INVALID</span>`;
+        const typeBadge = r.packet_status === 'L'
+          ? `<span class="badge live">L</span>`
+          : `<span class="badge hist">${escapeHtml(r.packet_status)}</span>`;
+        return `<tr onclick="flyToRecord(recentPackets[${idx}])">
+          <td class="mono">${r.id}</td>
+          <td class="mono">${t}</td>
+          <td class="mono">${escapeHtml(r.imei)}</td>
+          <td>${typeBadge}</td>
+          <td class="mono">${coords}</td>
+          <td>${statusBadge}</td>
+          <td class="mono raw-cell" title="${escapeHtml(r.raw_packet)}">${escapeHtml(r.raw_packet)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderDeviceHud() {
+      const hud = document.getElementById('device-hud');
+      hud.innerHTML = Array.from(liveDevices.values()).map(d => `
+        <div class="device-card" onclick="flyToRecord(liveDevices.get('${d.imei}'))">
+          <div class="imei">${d.imei}</div>
+          <div class="meta"><span>${d.vehicle_reg || 'AIS-140'}</span><span>${d.speed_kmh ?? 0} km/h</span></div>
+          <div class="meta"><span>${d.lat?.toFixed(4) ?? '-'}, ${d.lon?.toFixed(4) ?? '-'}</span><span>IGN: ${d.ignition ? 'ON' : 'OFF'}</span></div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    // ---------------- 4. SSE STREAM & HEALTH POLLING ----------------
+    async function loadInitialState() {
+      try {
+        const [recentRes, liveRes] = await Promise.all([fetch('/api/recent'), fetch('/api/live')]);
+        const recent = await recentRes.json();
+        const live = await liveRes.json();
+        live.forEach(d => {
+          liveDevices.set(d.imei, d);
+          updateMapForRecord(d);
+        });
+        recent.reverse().forEach(r => {
+          recentPackets.unshift(r);
+          if (recentPackets.length > 20) recentPackets.pop();
+        });
+        renderRecentTable();
+        renderDeviceHud();
+      } catch (e) { console.error(e); }
+    }
+
+    function connectSSE() {
+      const es = new EventSource('/api/stream');
+      es.onopen = () => {
+        document.getElementById('sse-dot').className = 'pulse-dot';
+        document.getElementById('conn-label').textContent = 'Live TCP Port 5001 -> WebGL Stream Active';
+      };
+      es.addEventListener('telemetry', (e) => {
+        try { pushRecord(JSON.parse(e.data)); } catch {}
+      });
+      es.onerror = () => {
+        document.getElementById('sse-dot').className = 'pulse-dot offline';
+        document.getElementById('conn-label').textContent = 'Reconnecting to gateway stream...';
+      };
+    }
+
+    async function pollHealth() {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        const s = data.stats;
+        document.getElementById('m-conns').textContent = s.active_connections;
+        document.getElementById('m-total').textContent = s.total_packets;
+        document.getElementById('m-valid').textContent = s.valid_packets;
+        document.getElementById('m-invalid').textContent = s.invalid_packets;
+        document.getElementById('m-influx').textContent = s.influx_writes_ok;
+        document.getElementById('m-ebs').textContent = s.ebs_enabled ? s.ebs_writes_ok : 'OFF';
+      } catch {}
+    }
+
+    // ---------------- 5. SIMULATOR ACTIONS ----------------
+    async function sendSingleTestPacket() {
+      const v = simFleet[Math.floor(Math.random() * simFleet.length)];
+      stepVehicle(v);
+      await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imei: v.imei, vehicle_reg: v.reg, lat: v.lat, lon: v.lon,
+          speed_kmh: v.speed, heading: v.heading, packet_status: 'L', ignition: true
+        })
+      });
+      pollHealth();
+    }
+
+    async function sendCustomPacket() {
+      const raw = document.getElementById('raw-input').value.trim();
+      const statusEl = document.getElementById('inject-status');
+      const res = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(raw ? { raw_packet: raw } : {})
+      });
+      statusEl.textContent = res.ok ? 'Sent to TCP :5001' : 'Error sending';
+      setTimeout(() => statusEl.textContent = '', 2000);
+      pollHealth();
+    }
+
+    function stepVehicle(v) {
+      v.lat += v.dLat + (Math.random() - 0.5) * 0.001;
+      v.lon += v.dLon + (Math.random() - 0.5) * 0.001;
+      v.speed = Math.max(15, Math.min(95, +(v.speed + (Math.random() - 0.5) * 8).toFixed(1)));
+      v.heading = Math.round((Math.atan2(v.dLon, v.dLat) * 180 / Math.PI + 360) % 360);
+    }
+
+    function toggleSimulation() {
+      const btn = document.getElementById('btn-sim');
+      if (simTimer) {
+        clearInterval(simTimer);
+        simTimer = null;
+        btn.textContent = '▶ Start Fleet Sim';
+        btn.className = 'primary';
+      } else {
+        btn.textContent = '⏹ Stop Fleet Sim';
+        btn.className = 'danger';
+        const tick = async () => {
+          for (const v of simFleet) {
+            stepVehicle(v);
+            await fetch('/api/simulate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                imei: v.imei, vehicle_reg: v.reg, lat: v.lat, lon: v.lon,
+                speed_kmh: v.speed, heading: v.heading, packet_status: 'L', ignition: true
+              })
+            });
+          }
+          pollHealth();
+        };
+        tick();
+        simTimer = setInterval(tick, 1800);
+      }
+    }
+
+    // Boot
+    initMap();
+    initNativeWebGL();
+    loadInitialState();
+    connectSSE();
+    pollHealth();
+    setInterval(pollHealth, 3000);
+  </script>
+</body>
+</html>
