@@ -11,6 +11,7 @@
       --bg: #070b14;
       --panel: #0d1424;
       --panel-2: #121c33;
+      --card: #10192d;
       --border: #1e2d4d;
       --text: #e2e8f0;
       --muted: #8b9bb4;
@@ -38,6 +39,7 @@
       border-bottom: 1px solid var(--border);
       gap: 12px;
       flex-wrap: wrap;
+      z-index: 20;
     }
     .brand {
       display: flex;
@@ -59,6 +61,7 @@
     }
     .brand h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
     .brand span { font-size: 11px; color: var(--muted); display: block; }
+
     .metrics {
       display: flex;
       gap: 8px;
@@ -69,7 +72,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 5px 10px;
-      min-width: 80px;
+      min-width: 78px;
     }
     .metric .label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
     .metric .val { font-size: 14px; font-weight: 700; color: var(--accent); margin-top: 1px; }
@@ -93,23 +96,42 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     button:hover { border-color: var(--accent); color: #fff; }
     button.primary { background: #0284c7; border-color: #38bdf8; color: #fff; }
     button.primary:hover { background: #0369a1; }
     button.active { background: #15803d; border-color: #22c55e; color: #fff; }
     button.danger { background: #991b1b; border-color: #ef4444; color: #fff; }
+    button.packets-btn {
+      background: #1e293b;
+      border-color: #38bdf8;
+      color: #e0f2fe;
+    }
+    button.packets-btn:hover { background: #0c4a6e; }
+    .pill-count {
+      background: #0284c7;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-family: monospace;
+    }
 
     .workspace {
       flex: 1;
       display: grid;
-      grid-template-columns: 1.35fr 1fr;
+      grid-template-columns: 1.45fr 1fr;
       min-height: 0;
     }
     @media (max-width: 1024px) {
       .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
     }
 
+    /* LEFT: MAP VIEWPORT */
     .viewport-pane {
       position: relative;
       border-right: 1px solid var(--border);
@@ -151,8 +173,8 @@
     }
     .search-box {
       flex: 1;
-      max-width: 420px;
-      min-width: 240px;
+      max-width: 400px;
+      min-width: 220px;
     }
     .search-box input {
       flex: 1;
@@ -164,15 +186,13 @@
       font-size: 12px;
       outline: none;
     }
-    .search-box input:focus {
-      border-color: var(--accent);
-    }
+    .search-box input:focus { border-color: var(--accent); }
     .search-status {
       position: absolute;
       top: 62px;
       right: 12px;
       z-index: 10;
-      background: rgba(13, 20, 36, 0.9);
+      background: rgba(13, 20, 36, 0.92);
       border: 1px solid var(--border);
       color: var(--accent);
       font-size: 11px;
@@ -181,47 +201,208 @@
       display: none;
     }
 
-    .device-hud {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      right: 12px;
-      z-index: 10;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-    .device-card {
-      background: rgba(13, 20, 36, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 8px 12px;
-      min-width: 205px;
-      cursor: pointer;
-      transition: border-color 0.15s, transform 0.15s;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    .device-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .device-card.highlighted { border-color: var(--green); box-shadow: 0 0 12px rgba(34, 197, 94, 0.4); }
-    .device-card .veh-reg { font-size: 13px; font-weight: 700; color: #fff; }
-    .device-card .imei { font-size: 11px; font-weight: 600; color: var(--accent); font-family: monospace; margin-top: 1px; }
-    .device-card .meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; }
-
+    /* RIGHT: CONNECTED VEHICLES LIST */
     .right-pane {
       display: flex;
       flex-direction: column;
       min-height: 0;
       background: var(--panel);
     }
-    .injector {
-      padding: 10px 14px;
+    .panel-header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       border-bottom: 1px solid var(--border);
       background: var(--panel-2);
     }
-    .injector-title {
+    .panel-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-header span { font-size: 11px; color: var(--muted); }
+
+    .vehicle-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 20px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .vehicle-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      transition: border-color 0.15s, transform 0.12s, background 0.15s;
+      cursor: pointer;
+    }
+    .vehicle-card:hover {
+      border-color: var(--accent);
+      background: #13203a;
+      transform: translateY(-1px);
+    }
+    .vehicle-card.selected {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+    }
+    .vc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .vc-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .vc-imei {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+    .vc-badges {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .vc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 9px 10px;
+      background: rgba(7, 11, 20, 0.55);
+      border: 1px solid rgba(30, 45, 77, 0.7);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .vc-stat .k {
+      font-size: 9.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+    }
+    .vc-stat .v {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      margin-top: 2px;
+    }
+    .vc-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
       font-size: 11px;
+      color: var(--muted);
+    }
+    .vc-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .vc-actions button {
+      padding: 4px 9px;
+      font-size: 11px;
+    }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .badge.ok { background: rgba(34, 197, 94, 0.18); color: var(--green); }
+    .badge.err { background: rgba(239, 68, 68, 0.22); color: var(--red); }
+    .badge.live { background: rgba(56, 189, 248, 0.18); color: var(--accent); }
+    .badge.hist { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
+    .badge.muted { background: rgba(139, 155, 180, 0.16); color: var(--muted); }
+
+    /* SLIDE-OVER PACKET POPOVER DRAWER */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .packet-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 680px;
+      max-width: 96vw;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      box-shadow: -12px 0 36px rgba(0, 0, 0, 0.6);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .packet-drawer.open {
+      transform: translateX(0);
+    }
+    .drawer-header {
+      padding: 14px 16px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .drawer-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .drawer-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .injector {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #0b1120;
+    }
+    .injector-title {
+      font-size: 10.5px;
       text-transform: uppercase;
       color: var(--muted);
       letter-spacing: 0.6px;
@@ -229,10 +410,7 @@
       display: flex;
       justify-content: space-between;
     }
-    .injector-row {
-      display: flex;
-      gap: 6px;
-    }
+    .injector-row { display: flex; gap: 6px; }
     .injector input {
       flex: 1;
       background: var(--bg);
@@ -243,16 +421,6 @@
       font-family: monospace;
       font-size: 11px;
     }
-
-    .table-header {
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-    }
-    .table-header h2 { font-size: 13px; font-weight: 700; }
-    .table-header span { font-size: 11px; color: var(--muted); }
 
     .table-wrap {
       flex: 1;
@@ -272,38 +440,39 @@
     }
     th {
       text-align: left;
-      padding: 8px 9px;
+      padding: 8px 10px;
       font-size: 10px;
       text-transform: uppercase;
       color: var(--muted);
       border-bottom: 1px solid var(--border);
     }
     td {
-      padding: 7px 9px;
+      padding: 8px 10px;
       border-bottom: 1px solid rgba(30, 45, 77, 0.6);
       vertical-align: middle;
     }
     tbody tr { cursor: pointer; transition: background 0.12s; }
     tbody tr:hover { background: rgba(56, 189, 248, 0.1); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-    }
-    .badge.ok { background: rgba(34, 197, 94, 0.18); color: var(--green); }
-    .badge.err { background: rgba(239, 68, 68, 0.2); color: var(--red); }
-    .badge.live { background: rgba(56, 189, 248, 0.18); color: var(--accent); }
-    .badge.hist { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
     .raw-cell {
-      max-width: 170px;
+      max-width: 210px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: var(--muted);
     }
+    .raw-detail {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      background: #080d19;
+      font-family: monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      word-break: break-all;
+      display: none;
+    }
+
+    /* MAP MARKERS */
     .marker-wrap {
       display: flex;
       flex-direction: column;
@@ -363,13 +532,16 @@
     </div>
 
     <div class="controls">
+      <button class="packets-btn" onclick="openPacketDrawer(null)">
+        Live Packets <span id="header-pkt-badge" class="pill-count">0</span>
+      </button>
       <button id="btn-sim" class="primary" onclick="toggleSimulation()">▶ Start Fleet Sim</button>
       <button onclick="sendSingleTestPacket()">+ Send 1 Packet</button>
     </div>
   </header>
 
   <div class="workspace">
-    <!-- Left: Free OpenStreetMap WebGL 3D Map (India Focus) + Native WebGL Globe -->
+    <!-- LEFT: Free OpenStreetMap WebGL 3D Map (India Focus) + 3D Globe -->
     <div class="viewport-pane">
       <div class="map-top-bar">
         <div class="map-overlay">
@@ -394,47 +566,76 @@
       <div id="search-status" class="search-status"></div>
       <div id="map"></div>
       <canvas id="webgl-canvas"></canvas>
-      <div id="device-hud" class="device-hud"></div>
     </div>
 
-    <!-- Right: Packet Injector + Latest 20 Incoming Packets -->
+    <!-- RIGHT: Connected Vehicles List (with Major Telemetry Details) -->
     <div class="right-pane">
-      <div class="injector">
-        <div class="injector-title">
-          <span>TCP Port 5001 Raw AIS-140 Injector</span>
-          <span id="inject-status" style="color:var(--accent)"></span>
-        </div>
-        <div class="injector-row">
-          <input id="raw-input" type="text" placeholder="Paste raw $PVT,... packet or leave blank for auto-generated" />
-          <button onclick="sendCustomPacket()">Inject TCP</button>
-        </div>
+      <div class="panel-header">
+        <h2>
+          Connected Vehicles
+          <span id="veh-count-badge" class="pill-count">0</span>
+        </h2>
+        <span id="veh-filter-label">Click any vehicle to locate on map</span>
       </div>
 
-      <div class="table-header">
-        <h2>Latest 20 Incoming Packets</h2>
-        <span id="pkt-count">0 / 20 buffered</span>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Time</th>
-              <th>Vehicle / IMEI</th>
-              <th>Type</th>
-              <th>Coords / Speed</th>
-              <th>Status</th>
-              <th>Raw $PVT</th>
-            </tr>
-          </thead>
-          <tbody id="recent-tbody">
-            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Waiting for AIS-140 TCP packets on port 5001... Click <b>Start Fleet Sim</b> to test live!</td></tr>
-          </tbody>
-        </table>
+      <div id="vehicle-list" class="vehicle-list">
+        <div class="empty-state">
+          No vehicles connected yet on TCP port <b>5001</b>.<br/>
+          Click <b>▶ Start Fleet Sim</b> in the top bar or connect an AIS-140 GPS tracker to see live vehicles here.
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- SLIDE-OVER SIDEBAR POPOVER: Latest 20 Incoming Packets & TCP Injector -->
+  <div id="drawer-backdrop" class="drawer-backdrop" onclick="closePacketDrawer()"></div>
+  <aside id="packet-drawer" class="packet-drawer">
+    <div class="drawer-header">
+      <div>
+        <h2>
+          Latest 20 Incoming Packets
+          <span id="drawer-pkt-count" class="pill-count">0 / 20</span>
+        </h2>
+        <div id="drawer-filter-sub" class="drawer-sub">Showing all incoming AIS-140 packets on TCP :5001</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="btn-clear-drawer-filter" style="display:none;" onclick="setDrawerImeiFilter(null)">Show All</button>
+        <button onclick="closePacketDrawer()">✕ Close</button>
+      </div>
+    </div>
+
+    <div class="injector">
+      <div class="injector-title">
+        <span>TCP Port 5001 Raw AIS-140 Injector</span>
+        <span id="inject-status" style="color:var(--accent)"></span>
+      </div>
+      <div class="injector-row">
+        <input id="raw-input" type="text" placeholder="Paste raw $PVT,... packet or leave blank for auto-generated" />
+        <button class="primary" onclick="sendCustomPacket()">Inject TCP</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Time</th>
+            <th>Vehicle / IMEI</th>
+            <th>Type</th>
+            <th>Coords / Speed</th>
+            <th>Status</th>
+            <th>Raw $PVT</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Waiting for AIS-140 TCP packets on port 5001...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="raw-detail" class="raw-detail"></div>
+  </aside>
 
   <script>
     const INDIA_CENTER = [78.9629, 22.5937];
@@ -445,6 +646,8 @@
     const deviceTrails = new Map();
     const mapMarkers = new Map();
     let searchQuery = '';
+    let selectedImei = null;
+    let drawerImeiFilter = null;
     let viewMode = 'map';
     let map = null;
     let mapReady = false;
@@ -456,6 +659,44 @@
       { imei: '864251050010002', reg: 'MH12TR8890', lat: 19.0760, lon: 72.8777, dLat: -0.0018, dLon: 0.0028, speed: 71.2, heading: 122 },
       { imei: '864251050010003', reg: 'KA01EV5512', lat: 12.9716, lon: 77.5946, dLat: 0.0025, dLon: -0.0016, speed: 44.8, heading: 328 }
     ];
+
+    // ---------------- PACKET DRAWER POPOVER ----------------
+    function openPacketDrawer(imeiFilter) {
+      drawerImeiFilter = imeiFilter || null;
+      document.getElementById('drawer-backdrop').classList.add('open');
+      document.getElementById('packet-drawer').classList.add('open');
+      updateDrawerHeader();
+      renderRecentTable();
+    }
+
+    function closePacketDrawer() {
+      document.getElementById('drawer-backdrop').classList.remove('open');
+      document.getElementById('packet-drawer').classList.remove('open');
+    }
+
+    function setDrawerImeiFilter(imei) {
+      drawerImeiFilter = imei;
+      updateDrawerHeader();
+      renderRecentTable();
+    }
+
+    function updateDrawerHeader() {
+      const sub = document.getElementById('drawer-filter-sub');
+      const clearBtn = document.getElementById('btn-clear-drawer-filter');
+      if (drawerImeiFilter) {
+        const dev = liveDevices.get(drawerImeiFilter);
+        const label = dev && dev.vehicle_reg ? `${dev.vehicle_reg} (${drawerImeiFilter})` : drawerImeiFilter;
+        sub.textContent = `Filtered to vehicle: ${label}`;
+        clearBtn.style.display = 'inline-flex';
+      } else {
+        sub.textContent = 'Showing all incoming AIS-140 packets on TCP :5001 (click a row to inspect raw packet)';
+        clearBtn.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePacketDrawer();
+    });
 
     // ---------------- SEARCH HELPERS (IMEI / VEHICLE NUMBER) ----------------
     function matchesSearch(rec) {
@@ -472,17 +713,18 @@
       searchQuery = document.getElementById('search-input').value.trim();
       updateSearchStatus();
       refreshMapObjects();
+      renderVehicleList();
       renderRecentTable();
-      renderDeviceHud();
     }
 
     function clearSearch() {
       document.getElementById('search-input').value = '';
       searchQuery = '';
+      selectedImei = null;
       updateSearchStatus();
       refreshMapObjects();
+      renderVehicleList();
       renderRecentTable();
-      renderDeviceHud();
     }
 
     function updateSearchStatus() {
@@ -492,29 +734,29 @@
         return;
       }
       const matchedDevices = Array.from(liveDevices.values()).filter(matchesSearch);
-      const matchedPkts = recentPackets.filter(matchesSearch);
       badge.style.display = 'block';
-      badge.textContent = `Filter "${searchQuery}": ${matchedDevices.length} vehicle(s), ${matchedPkts.length} packet(s)`;
+      badge.textContent = `Filter "${searchQuery}": ${matchedDevices.length} vehicle(s) matched`;
     }
 
     function locateSearchMatch() {
       searchQuery = document.getElementById('search-input').value.trim();
       updateSearchStatus();
       refreshMapObjects();
+      renderVehicleList();
       renderRecentTable();
-      renderDeviceHud();
 
       if (!searchQuery) {
         resetIndiaView();
         return;
       }
 
-      // Find first matching live vehicle (or fallback to recent packet with GPS coords)
       const match =
         Array.from(liveDevices.values()).find(r => matchesSearch(r) && r.lat != null && r.lon != null) ||
         recentPackets.find(r => matchesSearch(r) && r.lat != null && r.lon != null);
 
       if (match) {
+        selectedImei = match.imei;
+        renderVehicleList();
         if (viewMode !== 'map') setViewMode('map');
         flyToRecord(match, true);
       } else {
@@ -592,7 +834,6 @@
     function refreshMapObjects() {
       if (!mapReady || !map) return;
 
-      // Update GeoJSON trail lines (filtered by searchQuery if active)
       const features = [];
       for (const [imei, coords] of deviceTrails.entries()) {
         const rec = liveDevices.get(imei);
@@ -608,7 +849,6 @@
       const src = map.getSource('trails');
       if (src) src.setData({ type: 'FeatureCollection', features });
 
-      // Update vehicle markers
       for (const [imei, rec] of liveDevices.entries()) {
         if (rec.lat == null || rec.lon == null) continue;
         const visible = matchesSearch(rec);
@@ -645,7 +885,7 @@
         const arrow = wrap.querySelector('.marker-el');
         if (lbl) lbl.textContent = rec.vehicle_reg || rec.imei.slice(-6);
         if (arrow) {
-          arrow.className = searchQuery && visible ? 'marker-el match' : 'marker-el';
+          arrow.className = (searchQuery || selectedImei === imei) && visible ? 'marker-el match' : 'marker-el';
           if (rec.heading != null) {
             arrow.style.transform = `rotate(${rec.heading}deg)`;
           }
@@ -664,7 +904,11 @@
     }
 
     function flyToRecord(rec, openPopup = false) {
-      if (rec && rec.lat != null && rec.lon != null && map && viewMode === 'map') {
+      if (!rec) return;
+      selectedImei = rec.imei;
+      renderVehicleList();
+      refreshMapObjects();
+      if (rec.lat != null && rec.lon != null && map && viewMode === 'map') {
         map.flyTo({ center: [rec.lon, rec.lat], zoom: 12, pitch: 45, duration: 900 });
         if (openPopup && mapMarkers.has(rec.imei)) {
           const marker = mapMarkers.get(rec.imei);
@@ -673,33 +917,16 @@
       }
     }
 
-    // ---------------- 2. NATIVE WEBGL 3D GLOBE (ZERO-DEPENDENCY) ----------------
+    // ---------------- 2. NATIVE WEBGL 3D GLOBE ----------------
     let gl, glProg, sphereBuf, sphereCount = 0, globeRot = 1.35;
     function initNativeWebGL() {
       const canvas = document.getElementById('webgl-canvas');
       gl = canvas.getContext('webgl');
       if (!gl) return;
 
-      const vs = `
-        attribute vec3 aPos;
-        uniform mat4 uMat;
-        uniform float uSize;
-        void main() {
-          gl_Position = uMat * vec4(aPos, 1.0);
-          gl_PointSize = uSize;
-        }
-      `;
-      const fs = `
-        precision mediump float;
-        uniform vec4 uColor;
-        void main() { gl_FragColor = uColor; }
-      `;
-      const compile = (type, src) => {
-        const s = gl.createShader(type);
-        gl.shaderSource(s, src);
-        gl.compileShader(s);
-        return s;
-      };
+      const vs = `attribute vec3 aPos; uniform mat4 uMat; uniform float uSize; void main() { gl_Position = uMat * vec4(aPos, 1.0); gl_PointSize = uSize; }`;
+      const fs = `precision mediump float; uniform vec4 uColor; void main() { gl_FragColor = uColor; }`;
+      const compile = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
       glProg = gl.createProgram();
       gl.attachShader(glProg, compile(gl.VERTEX_SHADER, vs));
       gl.attachShader(glProg, compile(gl.FRAGMENT_SHADER, fs));
@@ -708,8 +935,7 @@
 
       const verts = [];
       for (let lat = -75; lat <= 75; lat += 15) {
-        const r = Math.cos(lat * Math.PI / 180);
-        const y = Math.sin(lat * Math.PI / 180);
+        const r = Math.cos(lat * Math.PI / 180), y = Math.sin(lat * Math.PI / 180);
         for (let lon = 0; lon < 360; lon += 10) {
           const a1 = lon * Math.PI / 180, a2 = (lon + 10) * Math.PI / 180;
           verts.push(r * Math.cos(a1), y, r * Math.sin(a1), r * Math.cos(a2), y, r * Math.sin(a2));
@@ -719,17 +945,13 @@
         const a = lon * Math.PI / 180;
         for (let lat = -85; lat < 85; lat += 10) {
           const t1 = lat * Math.PI / 180, t2 = (lat + 10) * Math.PI / 180;
-          verts.push(
-            Math.cos(t1) * Math.cos(a), Math.sin(t1), Math.cos(t1) * Math.sin(a),
-            Math.cos(t2) * Math.cos(a), Math.sin(t2), Math.cos(t2) * Math.sin(a)
-          );
+          verts.push(Math.cos(t1) * Math.cos(a), Math.sin(t1), Math.cos(t1) * Math.sin(a), Math.cos(t2) * Math.cos(a), Math.sin(t2), Math.cos(t2) * Math.sin(a));
         }
       }
       sphereBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, sphereBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
       sphereCount = verts.length / 3;
-
       requestAnimationFrame(renderGlobe);
     }
 
@@ -742,17 +964,13 @@
         canvas.height = canvas.clientHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
       }
-
       gl.clearColor(0.02, 0.04, 0.08, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);
 
       globeRot += 0.004;
-      const aspect = canvas.width / Math.max(1, canvas.height);
-      const scale = 0.72;
-      const cy = Math.cos(globeRot), sy = Math.sin(globeRot);
-      const cx = Math.cos(0.35), sx = Math.sin(0.35);
-
+      const aspect = canvas.width / Math.max(1, canvas.height), scale = 0.72;
+      const cy = Math.cos(globeRot), sy = Math.sin(globeRot), cx = Math.cos(0.35), sx = Math.sin(0.35);
       const mat = new Float32Array([
         (cy * scale) / aspect, sx * sy * scale, -cx * sy * scale, 0,
         0, cx * scale, sx * scale, 0,
@@ -768,7 +986,6 @@
       gl.uniformMatrix4fv(uMat, false, mat);
       gl.uniform1f(uSize, 2.0);
       gl.uniform4f(uColor, 0.12, 0.35, 0.58, 0.55);
-
       gl.bindBuffer(gl.ARRAY_BUFFER, sphereBuf);
       gl.enableVertexAttribArray(aPos);
       gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
@@ -777,9 +994,7 @@
       const pts = [];
       for (const rec of liveDevices.values()) {
         if (rec.lat == null || rec.lon == null || !matchesSearch(rec)) continue;
-        const latR = rec.lat * Math.PI / 180;
-        const lonR = -rec.lon * Math.PI / 180;
-        const r = 1.02;
+        const latR = rec.lat * Math.PI / 180, lonR = -rec.lon * Math.PI / 180, r = 1.02;
         pts.push(r * Math.cos(latR) * Math.cos(lonR), r * Math.sin(latR), r * Math.cos(latR) * Math.sin(lonR));
       }
       if (pts.length > 0) {
@@ -803,7 +1018,7 @@
       if (mode === 'map' && map) map.resize();
     }
 
-    // ---------------- 3. LIVE DATA & LATEST 20 RENDERING ----------------
+    // ---------------- 3. RENDER CONNECTED VEHICLES (RIGHT PANE) ----------------
     function pushRecord(rec) {
       recentPackets.unshift(rec);
       if (recentPackets.length > 20) recentPackets.pop();
@@ -812,25 +1027,102 @@
         updateMapForRecord(rec);
       }
       updateSearchStatus();
+      renderVehicleList();
       renderRecentTable();
-      renderDeviceHud();
     }
 
-    function renderRecentTable() {
-      const tbody = document.getElementById('recent-tbody');
-      const filtered = recentPackets.filter(matchesSearch);
-      document.getElementById('pkt-count').textContent = searchQuery
-        ? `${filtered.length} matching / ${recentPackets.length} buffered`
-        : `${recentPackets.length} / 20 buffered`;
+    function renderVehicleList() {
+      const container = document.getElementById('vehicle-list');
+      const allDevices = Array.from(liveDevices.values()).sort((a, b) =>
+        (b.received_at || '').localeCompare(a.received_at || '')
+      );
+      const filtered = allDevices.filter(matchesSearch);
+
+      document.getElementById('veh-count-badge').textContent = filtered.length;
+      document.getElementById('veh-filter-label').textContent = searchQuery
+        ? `Showing ${filtered.length} of ${allDevices.length} vehicles`
+        : 'Click any vehicle to locate on map';
 
       if (filtered.length === 0) {
-        tbody.innerHTML = searchQuery
-          ? `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No packets matching "<b>${escapeHtml(searchQuery)}</b>" in the latest 20 buffer.</td></tr>`
-          : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Waiting for AIS-140 TCP packets on port 5001... Click <b>Start Fleet Sim</b> to test live!</td></tr>`;
+        container.innerHTML = searchQuery
+          ? `<div class="empty-state">No connected vehicle matched "<b>${escapeHtml(searchQuery)}</b>".</div>`
+          : `<div class="empty-state">No vehicles connected yet on TCP port <b>5001</b>.<br/>Click <b>▶ Start Fleet Sim</b> in the top bar or connect an AIS-140 GPS tracker to see live vehicles here.</div>`;
         return;
       }
 
-      tbody.innerHTML = filtered.map((r) => {
+      container.innerHTML = filtered.map(d => {
+        const speed = d.speed_kmh != null ? `${d.speed_kmh.toFixed(1)} km/h` : '--';
+        const hdg = d.heading != null ? `${Math.round(d.heading)}°` : '--';
+        const coords = (d.lat != null && d.lon != null)
+          ? `${d.lat.toFixed(4)}, ${d.lon.toFixed(4)}`
+          : 'No Fix';
+        const sats = d.satellites != null ? d.satellites : '--';
+        const volt = d.battery_voltage != null ? `${d.battery_voltage.toFixed(1)}V` : '--';
+        const updated = (d.received_at || '').slice(11, 19) + ' UTC';
+        const isMoving = (d.speed_kmh || 0) > 2;
+
+        const ignBadge = d.ignition
+          ? `<span class="badge ok">IGN ON</span>`
+          : `<span class="badge muted">IGN OFF</span>`;
+        const moveBadge = isMoving
+          ? `<span class="badge live">MOVING</span>`
+          : `<span class="badge hist">IDLE</span>`;
+        const emgBadge = d.emergency
+          ? `<span class="badge err">SOS</span>`
+          : '';
+        const fixBadge = d.gps_fix === false
+          ? `<span class="badge err">NO GPS</span>`
+          : '';
+
+        return `
+          <div class="vehicle-card ${selectedImei === d.imei ? 'selected' : ''}" onclick="flyToRecord(liveDevices.get('${d.imei}'), true)">
+            <div class="vc-top">
+              <div>
+                <div class="vc-title">${escapeHtml(d.vehicle_reg || 'AIS-140 Vehicle')}</div>
+                <div class="vc-imei">IMEI: ${escapeHtml(d.imei)}</div>
+              </div>
+              <div class="vc-badges">${emgBadge}${fixBadge}${ignBadge}${moveBadge}</div>
+            </div>
+
+            <div class="vc-grid">
+              <div class="vc-stat"><div class="k">Speed</div><div class="v">${speed}</div></div>
+              <div class="vc-stat"><div class="k">Heading</div><div class="v">${hdg}</div></div>
+              <div class="vc-stat"><div class="k">Satellites</div><div class="v">${sats}</div></div>
+              <div class="vc-stat"><div class="k">Coordinates</div><div class="v">${coords}</div></div>
+              <div class="vc-stat"><div class="k">Battery</div><div class="v">${volt}</div></div>
+              <div class="vc-stat"><div class="k">Alert / Type</div><div class="v">${escapeHtml(d.packet_type || 'NR')}</div></div>
+            </div>
+
+            <div class="vc-footer">
+              <span>Last packet: <b class="mono">${updated}</b></span>
+              <div class="vc-actions" onclick="event.stopPropagation()">
+                <button onclick="flyToRecord(liveDevices.get('${d.imei}'), true)">Locate</button>
+                <button class="packets-btn" onclick="openPacketDrawer('${d.imei}')">Packets</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ---------------- 4. RENDER LATEST 20 PACKETS (SIDEBAR POPOVER) ----------------
+    function renderRecentTable() {
+      document.getElementById('header-pkt-badge').textContent = recentPackets.length;
+      const tbody = document.getElementById('recent-tbody');
+
+      const filtered = recentPackets.filter(r => {
+        if (drawerImeiFilter && r.imei !== drawerImeiFilter) return false;
+        return matchesSearch(r);
+      });
+
+      document.getElementById('drawer-pkt-count').textContent = `${filtered.length} / ${recentPackets.length}`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No matching packets in the latest 20 buffer.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
         const origIdx = recentPackets.indexOf(r);
         const t = (r.received_at || '').slice(11, 19);
         const coords = (r.lat != null && r.lon != null)
@@ -845,7 +1137,7 @@
         const vehLabel = r.vehicle_reg
           ? `<div style="font-weight:700;color:#fff;">${escapeHtml(r.vehicle_reg)}</div><div class="mono" style="font-size:10px;color:var(--accent);">${escapeHtml(r.imei)}</div>`
           : `<div class="mono">${escapeHtml(r.imei)}</div>`;
-        return `<tr onclick="flyToRecord(recentPackets[${origIdx}], true)">
+        return `<tr onclick="inspectPacket(${origIdx})">
           <td class="mono">${r.id}</td>
           <td class="mono">${t}</td>
           <td>${vehLabel}</td>
@@ -857,24 +1149,20 @@
       }).join('');
     }
 
-    function renderDeviceHud() {
-      const hud = document.getElementById('device-hud');
-      const devices = Array.from(liveDevices.values()).filter(matchesSearch);
-      hud.innerHTML = devices.map(d => `
-        <div class="device-card ${searchQuery ? 'highlighted' : ''}" onclick="flyToRecord(liveDevices.get('${d.imei}'), true)">
-          <div class="veh-reg">${escapeHtml(d.vehicle_reg || 'AIS-140 Vehicle')}</div>
-          <div class="imei">${escapeHtml(d.imei)}</div>
-          <div class="meta"><span>${d.speed_kmh ?? 0} km/h</span><span>IGN: ${d.ignition ? 'ON' : 'OFF'}</span></div>
-          <div class="meta"><span>${d.lat?.toFixed(4) ?? '-'}, ${d.lon?.toFixed(4) ?? '-'}</span><span>HDG: ${d.heading ?? 0}&deg;</span></div>
-        </div>
-      `).join('');
+    function inspectPacket(idx) {
+      const rec = recentPackets[idx];
+      if (!rec) return;
+      const box = document.getElementById('raw-detail');
+      box.style.display = 'block';
+      box.textContent = `Packet #${rec.id} [${rec.valid ? 'VALID' : 'INVALID'}]: ${rec.raw_packet}`;
+      flyToRecord(rec, true);
     }
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
     }
 
-    // ---------------- 4. SSE STREAM & HEALTH POLLING ----------------
+    // ---------------- 5. SSE STREAM & HEALTH POLLING ----------------
     async function loadInitialState() {
       try {
         const [recentRes, liveRes] = await Promise.all([fetch('/api/recent'), fetch('/api/live')]);
@@ -888,8 +1176,8 @@
           recentPackets.unshift(r);
           if (recentPackets.length > 20) recentPackets.pop();
         });
+        renderVehicleList();
         renderRecentTable();
-        renderDeviceHud();
       } catch (e) { console.error(e); }
     }
 
@@ -922,7 +1210,7 @@
       } catch {}
     }
 
-    // ---------------- 5. SIMULATOR ACTIONS ----------------
+    // ---------------- 6. SIMULATOR ACTIONS ----------------
     async function sendSingleTestPacket() {
       const v = simFleet[Math.floor(Math.random() * simFleet.length)];
       stepVehicle(v);
