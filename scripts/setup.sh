@@ -72,7 +72,7 @@ if ! command -v influx >/dev/null 2>&1; then
   echo "==> Installing Influx CLI..."
   curl -fSL "${INFLUX_CLI_URL}" -o /tmp/influx-cli.tar.gz
   rm -rf /tmp/influx-cli-extract && mkdir -p /tmp/influx-cli-extract
-  tar -xzf /tmp/influx-cli.tar.gz -C /tmp/influx-cli-extract
+  tar --no-same-owner --no-same-permissions --touch -xzf /tmp/influx-cli.tar.gz -C /tmp/influx-cli-extract
   sudo cp /tmp/influx-cli-extract/influx /usr/local/bin/influx
   sudo chmod +x /usr/local/bin/influx
   rm -rf /tmp/influx-cli-extract /tmp/influx-cli.tar.gz
