@@ -20,7 +20,12 @@ git pull --ff-only origin main
 chmod +x scripts/*.sh
 
 echo "==> [2/3] Building optimized release binary (live server stays online during compile)..."
-cargo build --release
+TOTAL_MEM_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+if [[ "$TOTAL_MEM_MB" -lt 3072 ]]; then
+  CARGO_BUILD_JOBS=1 cargo build --release
+else
+  cargo build --release
+fi
 
 echo "==> [3/3] Restarting vltd-gateway systemd service..."
 sudo systemctl restart vltd-gateway

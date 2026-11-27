@@ -18,15 +18,33 @@ echo "======================================================================"
 echo " Provisioning VLTD AIS-140 Rust Gateway on Ubuntu EC2"
 echo "======================================================================"
 
+# 0. Ensure 2GB swap on low-RAM EC2 instances (e.g. t2.micro / t3.micro) so rustup & cargo never OOM
+TOTAL_MEM_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+if [[ "$TOTAL_MEM_MB" -lt 3072 ]] && ! swapon --show | grep -q '/swapfile'; then
+  echo "==> [0/7] Detected ${TOTAL_MEM_MB}MB RAM; creating 2GB swapfile to prevent OOM during Rust build..."
+  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  if ! grep -q '/swapfile' /etc/fstab; then
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+  fi
+fi
+
 # 1. Base OS packages
 echo "==> [1/7] Installing system dependencies..."
 sudo apt-get update -y
 sudo apt-get install -y curl wget git build-essential pkg-config libssl-dev ca-certificates
 
-# 2. Rust toolchain
-if ! command -v cargo >/dev/null 2>&1; then
-  echo "==> [2/7] Installing Rust toolchain..."
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# 2. Rust toolchain (minimal profile = skips docs/clippy/rustfmt for low RAM & fast install)
+if [[ -f "$HOME/.cargo/env" ]]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.cargo/env"
+fi
+if ! command -v cargo >/dev/null 2>&1 || ! rustc --version >/dev/null 2>&1; then
+  echo "==> [2/7] Installing Rust toolchain (minimal profile)..."
+  rm -rf "$HOME/.rustup" "$HOME/.cargo"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 fi
 # shellcheck disable=SC1091
 source "$HOME/.cargo/env"
@@ -105,7 +123,11 @@ cd "${APP_DIR}"
 if [[ ! -f "${APP_DIR}/.env" ]]; then
   cp "${APP_DIR}/.env.example" "${APP_DIR}/.env"
 fi
-cargo build --release
+if [[ "$TOTAL_MEM_MB" -lt 3072 ]]; then
+  CARGO_BUILD_JOBS=1 cargo build --release
+else
+  cargo build --release
+fi
 
 # 7. Install permanent systemd daemon
 echo "==> [7/7] Configuring systemd service (vltd-gateway)..."
