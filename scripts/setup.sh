@@ -6,7 +6,7 @@ set -euo pipefail
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/Kunal-ranjan99/rustAis/main/scripts/setup.sh | bash
 # Optional EBS volume auto-mount:
-#   EBS_DEVICE=/dev/nvme1n1 curl -sSL https://raw.githubusercontent.com/Kunal-ranjan99/rustAis/main/scripts/setup.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/Kunal-ranjan99/rustAis/main/scripts/setup.sh | EBS_DEVICE=/dev/nvme1n1 bash
 # ==============================================================================
 
 REPO_URL="https://github.com/Kunal-ranjan99/rustAis.git"

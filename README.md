@@ -33,7 +33,7 @@ curl -sSL https://raw.githubusercontent.com/Kunal-ranjan99/rustAis/main/scripts/
 If you already attached an extra AWS EBS volume (e.g. `/dev/nvme1n1`), pass it in the same command to auto-mount and configure InfluxDB on EBS:
 
 ```bash
-EBS_DEVICE=/dev/nvme1n1 curl -sSL https://raw.githubusercontent.com/Kunal-ranjan99/rustAis/main/scripts/setup.sh | bash
+curl -sSL https://raw.githubusercontent.com/Kunal-ranjan99/rustAis/main/scripts/setup.sh | EBS_DEVICE=/dev/nvme1n1 bash
 ```
 
 Once complete, open your WebGL Dashboard at:
