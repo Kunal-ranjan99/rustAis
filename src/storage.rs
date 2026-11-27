@@ -51,6 +51,7 @@ pub struct StatsSnapshot {
     pub invalid_packets: u64,
     pub influx_writes_ok: u64,
     pub influx_writes_err: u64,
+    pub last_influx_error: Option<String>,
     pub ebs_writes_ok: u64,
     pub ebs_writes_err: u64,
     pub tracked_devices: usize,
@@ -66,6 +67,7 @@ pub struct AppState {
     pub http_client: HttpClient,
     pub recent_packets: Arc<RwLock<VecDeque<TelemetryRecord>>>,
     pub live_devices: Arc<RwLock<HashMap<String, TelemetryRecord>>>,
+    pub last_influx_error: Arc<RwLock<Option<String>>>,
     pub broadcast_tx: broadcast::Sender<TelemetryRecord>,
     pub stats: Arc<ServerStats>,
     pub packet_seq: Arc<AtomicU64>,
@@ -110,6 +112,7 @@ impl AppState {
                 config.recent_buffer_size + 1,
             ))),
             live_devices: Arc::new(RwLock::new(HashMap::new())),
+            last_influx_error: Arc::new(RwLock::new(None)),
             config,
             redis_client,
             redis_conn: Arc::new(RwLock::new(redis_conn)),
@@ -126,6 +129,7 @@ impl AppState {
 
     pub async fn stats_snapshot(&self) -> StatsSnapshot {
         let tracked_devices = self.live_devices.read().await.len();
+        let last_influx_error = self.last_influx_error.read().await.clone();
         StatsSnapshot {
             started_at: self.stats.started_at.clone(),
             active_connections: self.stats.active_connections.load(Ordering::Relaxed),
@@ -134,6 +138,7 @@ impl AppState {
             invalid_packets: self.stats.invalid_packets.load(Ordering::Relaxed),
             influx_writes_ok: self.stats.influx_writes_ok.load(Ordering::Relaxed),
             influx_writes_err: self.stats.influx_writes_err.load(Ordering::Relaxed),
+            last_influx_error,
             ebs_writes_ok: self.stats.ebs_writes_ok.load(Ordering::Relaxed),
             ebs_writes_err: self.stats.ebs_writes_err.load(Ordering::Relaxed),
             tracked_devices,
@@ -272,15 +277,23 @@ impl AppState {
                 let status = res.status();
                 if status.is_success() || status == reqwest::StatusCode::NO_CONTENT {
                     self.stats.influx_writes_ok.fetch_add(1, Ordering::Relaxed);
+                    let mut guard = self.last_influx_error.write().await;
+                    if guard.is_some() {
+                        *guard = None;
+                    }
                 } else {
                     self.stats.influx_writes_err.fetch_add(1, Ordering::Relaxed);
                     let err = res.text().await.unwrap_or_default();
-                    error!("InfluxDB HTTP {}: {}", status, err);
+                    let msg = format!("HTTP {}: {}", status, err);
+                    *self.last_influx_error.write().await = Some(msg.clone());
+                    error!("InfluxDB {}", msg);
                 }
             }
             Err(e) => {
                 self.stats.influx_writes_err.fetch_add(1, Ordering::Relaxed);
-                error!("InfluxDB write request failed: {:?}", e);
+                let msg = format!("Request failed: {}", e);
+                *self.last_influx_error.write().await = Some(msg.clone());
+                error!("InfluxDB {}", msg);
             }
         }
     }
