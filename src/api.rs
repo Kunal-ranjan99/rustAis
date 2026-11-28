@@ -1,8 +1,9 @@
 use crate::ais140::TelemetryRecord;
 use crate::storage::AppState;
 use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
+    extract::{Path, Query, Request, State},
+    http::{header, HeaderMap, HeaderValue, Method, StatusCode},
+    middleware::{self, Next},
     response::{
         sse::{Event, KeepAlive, Sse},
         Html, IntoResponse, Response,
@@ -82,6 +83,37 @@ pub fn build_router(state: AppState) -> Router {
         .route("/devices/:imei", get(get_single_device_by_path))
         .route("/influx/history", get(query_influx_history))
         .with_state(state)
+        .layer(middleware::from_fn(cors_middleware))
+}
+
+async fn cors_middleware(req: Request, next: Next) -> Response {
+    if req.method() == Method::OPTIONS {
+        let mut res = StatusCode::NO_CONTENT.into_response();
+        add_cors_headers(res.headers_mut());
+        return res;
+    }
+    let mut res = next.run(req).await;
+    add_cors_headers(res.headers_mut());
+    res
+}
+
+fn add_cors_headers(headers: &mut HeaderMap) {
+    headers.insert(
+        header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        HeaderValue::from_static("*"),
+    );
+    headers.insert(
+        header::ACCESS_CONTROL_ALLOW_METHODS,
+        HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS"),
+    );
+    headers.insert(
+        header::ACCESS_CONTROL_ALLOW_HEADERS,
+        HeaderValue::from_static("*"),
+    );
+    headers.insert(
+        header::ACCESS_CONTROL_MAX_AGE,
+        HeaderValue::from_static("86400"),
+    );
 }
 
 async fn serve_dashboard() -> Html<&'static str> {
